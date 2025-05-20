@@ -78,7 +78,7 @@
     }
 
     // 5) Wire up variant selection
-    let currentVariant = product.variants[0];
+    let currentVariant = product.variants[1];
     renderImage(currentVariant);
     variantSelect.addEventListener('change', e => {
       currentVariant = product.variants[e.target.value];
