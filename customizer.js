@@ -1,3 +1,4 @@
+// public/customizer.js
 ;(function () {
   // 1) Dynamically load Cropper.js & its CSS
   function loadCropper() {
@@ -47,11 +48,6 @@
       opt.text  = v.title;
       variantSelect.appendChild(opt);
     });
-
-    // Default to variant index 1 if it exists
-    const defaultIndex = product.variants.length > 1 ? 1 : 0;
-    variantSelect.selectedIndex = defaultIndex;
-
     const widthInput = Object.assign(document.createElement('input'), {
       type: 'number', placeholder: 'Width (in)', min: 1
     });
@@ -75,14 +71,11 @@
     function renderImage(variant) {
       if (cropper) { cropper.destroy(); imgEl.remove(); }
 
-      // Safe lookup: variant.image → featured_image → product.images[1] → [0]
+      // Safe lookup
       let src =
         variant.image?.src ??
         variant.featured_image?.src ??
-        (Array.isArray(product.images) && product.images.length > 1
-          ? product.images[1]
-          : product.images[0]);
-
+        (Array.isArray(product.images) ? product.images[1] : null);
       if (!src) {
         console.error('Customizer: no image for variant', variant);
         return;
@@ -105,21 +98,21 @@
           zoomable:         false,
           scalable:         false,
         });
-        // Apply current aspect ratio if dimensions are set
+        // If dimensions already entered, apply ratio immediately
         updateAspectRatio();
       };
     }
 
     // Variant change
-    let currentVariant = product.variants[defaultIndex];
+    let currentVariant = product.variants[1];
     renderImage(currentVariant);
-    variantSelect.addEventListener('change', (e) => {
+    variantSelect.addEventListener('change', e => {
       currentVariant = product.variants[e.target.value];
       renderImage(currentVariant);
       recalc();
     });
 
-    // Update crop-box aspect ratio based on inputs
+    // Update crop-box aspect ratio to w/h
     function updateAspectRatio() {
       const w = parseFloat(widthInput.value);
       const h = parseFloat(heightInput.value);
@@ -134,7 +127,7 @@
       const h = parseFloat(heightInput.value);
       if (!(w > 0 && h > 0)) return;
 
-      // Update aspect ratio first
+      // Update aspect ratio
       updateAspectRatio();
 
       // Compute area & price
@@ -146,6 +139,8 @@
       priceDisplay.innerText = `Price: $${total.toFixed(2)}`;
       if (qtyInput) qtyInput.value = areaSqFt.toFixed(2);
     }
+
+    // Wire inputs
     widthInput .addEventListener('input', recalc);
     heightInput.addEventListener('input', recalc);
 
