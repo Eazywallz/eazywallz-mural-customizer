@@ -67,7 +67,7 @@
       let src =
         variant.image?.src ??
         variant.featured_image?.src ??
-        (Array.isArray(product.images) ? product.images[0] : null);
+        (Array.isArray(product.images) ? product.images[1] : null);
 
       if (!src) {
         console.error('Customizer: no image URL found for variant', variant);
@@ -95,7 +95,7 @@
     }
 
     // Variant change handler
-    let currentVariant = product.variants[0];
+    let currentVariant = product.variants[1];
     renderImage(currentVariant);
     variantSelect.addEventListener('change', (e) => {
       currentVariant = product.variants[e.target.value];
