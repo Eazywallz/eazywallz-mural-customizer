@@ -133,7 +133,7 @@
       const sy = flipSelect.value.includes('vertical')   ? -1 : 1;
       canvasWrapper.style.transform = `scale(${sx}, ${sy})`;
     }
-    flipSelect.addEventListener('change', applyFlips);('change', applyFlips);('change', applyFlips);
+    flipSelect.addEventListener('change', applyFlips);
 
     function applyBW(){
       const wrapper = container.querySelector('.cropper-container');
