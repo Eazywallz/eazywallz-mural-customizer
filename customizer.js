@@ -61,7 +61,15 @@
     const heightFeetInput = Object.assign(document.createElement('input'),{type:'number',placeholder:'Feet',min:0});
     const heightInchesInput = Object.assign(document.createElement('input'),{type:'number',placeholder:'Inches',min:0,max:11});
     heightInchesInput.addEventListener('input', ()=>{ if (parseInt(heightInchesInput.value, 10) > 11) heightInchesInput.value = 11; });
+    // Digit-length limits
+    widthFeetInput.addEventListener('input', () => {
+      if (widthFeetInput.value.length > 3) widthFeetInput.value = widthFeetInput.value.slice(0,3);
+    });
+    heightFeetInput.addEventListener('input', () => {
+      if (heightFeetInput.value.length > 3) heightFeetInput.value = heightFeetInput.value.slice(0,3);
+    });
     // hide feet fields initially
+    [widthFeetInput,widthInchesInput,heightFeetInput,heightInchesInput].forEach(el=>el.style.display='none');
     [widthFeetInput,widthInchesInput,heightFeetInput,heightInchesInput].forEach(el=>el.style.display='none');
 
     // Flip dropdown
@@ -198,8 +206,6 @@
     }
     function clearPanels(){
       container.querySelectorAll('.panel-line').forEach(el => el.remove());
-    }(){
-      container.querySelectorAll('.panel-line').forEach(el=>el.remove());
     }
 
     // Recalc on input
