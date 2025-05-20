@@ -57,8 +57,10 @@
     // Dimension inputs (feet)
     const widthFeetInput = Object.assign(document.createElement('input'),{type:'number',placeholder:'Feet',min:0});
     const widthInchesInput = Object.assign(document.createElement('input'),{type:'number',placeholder:'Inches',min:0,max:11});
+    widthInchesInput.addEventListener('input', ()=>{ if (parseInt(widthInchesInput.value, 10) > 11) widthInchesInput.value = 11; });
     const heightFeetInput = Object.assign(document.createElement('input'),{type:'number',placeholder:'Feet',min:0});
     const heightInchesInput = Object.assign(document.createElement('input'),{type:'number',placeholder:'Inches',min:0,max:11});
+    heightInchesInput.addEventListener('input', ()=>{ if (parseInt(heightInchesInput.value, 10) > 11) heightInchesInput.value = 11; });
     // hide feet fields initially
     [widthFeetInput,widthInchesInput,heightFeetInput,heightInchesInput].forEach(el=>el.style.display='none');
 
@@ -180,7 +182,7 @@
       for(let i=1;i<count;i++){
         const line=document.createElement('div'); line.className='panel-line';
         line.style.position='absolute'; line.style.top=0; line.style.bottom=0;
-        line.style.width='2px'; line.style.background='rgba(255,255,255,0.7)';
+        line.style.width='2px'; line.style.background='rgba(0,0,0,0.7)';
         line.style.left = (i/count*100)+'%';
         wrapper.appendChild(line);
       }
