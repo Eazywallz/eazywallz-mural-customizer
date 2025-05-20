@@ -91,6 +91,8 @@
 
     // Cropper
     let cropper, imgEl;
+    // track current flip scales
+    let currentSX = 1, currentSY = 1;
     function renderImage(variant, idx) {
       if(cropper){ cropper.destroy(); imgEl.remove(); }
       let src = variant.image?.src ?? variant.featured_image?.src
@@ -124,15 +126,23 @@
     function toInches(v){ const n=+v; if(!(n>0)) return NaN; switch(unitSelect.value){ case 'feet': return n*12; case 'cm': return n*0.393700787; default: return n; }}
     function updateAspectRatio(){ const w=toInches(widthInput.value),h=toInches(heightInput.value); if(cropper&&w>0&&h>0) cropper.setAspectRatio(w/h); }
 
-    function applyFlips(){
-      const wrapper = container.querySelector('.cropper-container');
-      if(!wrapper) return;
-      const sx = flipSelect.value.includes('horizontal') ? -1 : 1;
-      const sy = flipSelect.value.includes('vertical')   ? -1 : 1;
-      wrapper.style.transform = `scaleX(${sx}) scaleY(${sy})`;
-      wrapper.style.transformOrigin = 'center';
+    function applyFlips() {
+      if (!cropper) return;
+      // determine desired scales
+      const desiredSX = (flipSelect.value === 'horizontal' || flipSelect.value === 'both') ? -1 : 1;
+      const desiredSY = (flipSelect.value === 'vertical'   || flipSelect.value === 'both') ? -1 : 1;
+      // apply X flip only if change needed
+      if (desiredSX !== currentSX) {
+        cropper.scaleX(-1);
+        currentSX = desiredSX;
+      }
+      // apply Y flip only if change needed
+      if (desiredSY !== currentSY) {
+        cropper.scaleY(-1);
+        currentSY = desiredSY;
+      }
     }
-    flipSelect.addEventListener('change', applyFlips);
+    flipSelect.addEventListener('change', applyFlips);('change', applyFlips);
 
     function applyBW(){
       const wrapper = container.querySelector('.cropper-container');
