@@ -172,22 +172,33 @@
     // Panel overlay
     function drawPanels(){
       clearPanels();
-      const w=getWidthInches(); if(!(w>0)) return;
-      // compute sections
-      const maxW = unitSelect.value==='cm'?25*2.54:25;
+      const w = getWidthInches();
+      if (!(w>0)) return;
+      const maxW = unitSelect.value==='cm' ? 25*2.54 : 25;
       const count = Math.ceil(w/maxW);
-      const wrapper=container.querySelector('.cropper-container');
-      if(!wrapper) return;
-      wrapper.style.position='relative';
-      for(let i=1;i<count;i++){
-        const line=document.createElement('div'); line.className='panel-line';
-        line.style.position='absolute'; line.style.top=0; line.style.bottom=0;
-        line.style.width='2px'; line.style.background='rgba(0,0,0,0.7)';
-        line.style.left = (i/count*100)+'%';
+      const wrapper = container.querySelector('.cropper-container');
+      if (!wrapper) return;
+      // ensure wrapper positioning
+      if (window.getComputedStyle(wrapper).position === 'static') {
+        wrapper.style.position = 'relative';
+      }
+      for (let i = 1; i < count; i++) {
+        const line = document.createElement('div');
+        line.className = 'panel-line';
+        line.style.position = 'absolute';
+        line.style.top = '0';
+        line.style.bottom = '0';
+        line.style.width = '2px';
+        line.style.background = 'rgba(0,0,0,0.7)';
+        line.style.left = (i/count*100) + '%';
+        line.style.zIndex = '1000';
+        line.style.pointerEvents = 'none';
         wrapper.appendChild(line);
       }
     }
     function clearPanels(){
+      container.querySelectorAll('.panel-line').forEach(el => el.remove());
+    }(){
       container.querySelectorAll('.panel-line').forEach(el=>el.remove());
     }
 
