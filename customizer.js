@@ -184,6 +184,28 @@
       if (!(w>0)) return;
       const maxW = unitSelect.value==='cm' ? 25*2.54 : 25;
       const count = Math.ceil(w/maxW);
+      // find wrapper around image
+      const wrapper = imgEl?.closest('.cropper-container');
+      if (!wrapper) return;
+      // position wrapper
+      wrapper.style.position = 'relative';
+      for (let i = 1; i < count; i++) {
+        const line = document.createElement('div');
+        line.className = 'panel-line';
+        line.style.position = 'absolute';
+        line.style.top = '0';
+        line.style.bottom = '0';
+        line.style.width = '2px';
+        line.style.background = 'rgba(0,0,0,0.7)';
+        line.style.left = (i/count*100) + '%';
+        line.style.zIndex = '1000';
+        line.style.pointerEvents = 'none';
+        wrapper.appendChild(line);
+      }
+      const w = getWidthInches();
+      if (!(w>0)) return;
+      const maxW = unitSelect.value==='cm' ? 25*2.54 : 25;
+      const count = Math.ceil(w/maxW);
       const wrapper = container.querySelector('.cropper-container');
       if (!wrapper) return;
       // ensure wrapper positioning
