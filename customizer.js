@@ -184,6 +184,31 @@
       if (!(w > 0)) return;
       const maxW = unitSelect.value === 'cm' ? 25 * 2.54 : 25;
       const count = Math.ceil(w / maxW);
+      // target the crop box
+      const cropBox = container.querySelector('.cropper-crop-box');
+      if (!cropBox) return;
+      cropBox.style.position = 'relative';
+      cropBox.style.overflow = 'visible';
+      for (let i = 1; i < count; i++) {
+        const line = document.createElement('div');
+        line.className = 'panel-line';
+        line.style.position = 'absolute';
+        line.style.top = '0';
+        line.style.bottom = '0';
+        line.style.width = '2px';
+        line.style.background = 'rgba(0,0,0,0.7)';
+        line.style.left = (i / count * 100) + '%';
+        line.style.zIndex = '1000';
+        line.style.pointerEvents = 'none';
+        cropBox.appendChild(line);
+      }
+    }
+
+    function clearPanels();
+      const w = getWidthInches();
+      if (!(w > 0)) return;
+      const maxW = unitSelect.value === 'cm' ? 25 * 2.54 : 25;
+      const count = Math.ceil(w / maxW);
       // target the view box (visible cropping area)
       const viewBox = container.querySelector('.cropper-view-box');
       if (!viewBox) return;
