@@ -1,16 +1,16 @@
 ;(function () {
-  // 1) Dynamically load Cropper.js & CSS
+  // 1) Dynamically load Cropper.js & its CSS
   function loadCropper() {
     return new Promise((resolve, reject) => {
+      // CSS
       const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href =
-        'https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css';
+      link.rel  = 'stylesheet';
+      link.href = 'https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css';
       document.head.appendChild(link);
 
+      // JS
       const script = document.createElement('script');
-      script.src =
-        'https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js';
+      script.src     = 'https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js';
       script.onload  = () => { console.log('Cropper.js loaded'); resolve(); };
       script.onerror = (err) => reject(err);
       document.head.appendChild(script);
@@ -20,9 +20,12 @@
   // 2) Initialize the customizer
   function initCustomizer() {
     const container = document.getElementById('mural-customizer');
-    if (!container) return console.warn('Customizer: missing container');
+    if (!container) {
+      console.warn('Customizer: container missing');
+      return;
+    }
 
-    // Style constraints
+    // Constrain widget width and center it
     container.style.maxWidth = '500px';
     container.style.margin   = '1rem auto';
 
@@ -30,18 +33,25 @@
     let product;
     try {
       product = JSON.parse(container.dataset.product);
-    } catch (e) {
-      return console.error('Customizer: invalid product JSON', e);
+    } catch (err) {
+      console.error('Customizer: invalid product JSON', err);
+      return;
     }
-    console.log('Customizer: product', product);
+    console.log('Customizer: product loaded', product);
 
-    // UI: variant select, width/height inputs, price display
+    // Build UI
     const variantSelect = document.createElement('select');
     product.variants.forEach((v, i) => {
-      const o = document.createElement('option');
-      o.value = i; o.text = v.title;
-      variantSelect.append(o);
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.text  = v.title;
+      variantSelect.appendChild(opt);
     });
+
+    // Default to variant index 1 if it exists
+    const defaultIndex = product.variants.length > 1 ? 1 : 0;
+    variantSelect.selectedIndex = defaultIndex;
+
     const widthInput = Object.assign(document.createElement('input'), {
       type: 'number', placeholder: 'Width (in)', min: 1
     });
@@ -55,22 +65,26 @@
 
     // Shopify quantity field
     const qtyInput = document.querySelector('input[name="quantity"]');
-    if (qtyInput) { qtyInput.step = 'any'; qtyInput.min = 0; }
+    if (qtyInput) {
+      qtyInput.step = 'any';
+      qtyInput.min  = 0;
+    }
 
     // Image + Cropper
     let cropper, imgEl;
     function renderImage(variant) {
-      // Cleanup old
       if (cropper) { cropper.destroy(); imgEl.remove(); }
 
-      // Safe lookup with optional chaining
+      // Safe lookup: variant.image → featured_image → product.images[1] → [0]
       let src =
         variant.image?.src ??
         variant.featured_image?.src ??
-        (Array.isArray(product.images) ? product.images[1] : null);
+        (Array.isArray(product.images) && product.images.length > 1
+          ? product.images[1]
+          : product.images[0]);
 
       if (!src) {
-        console.error('Customizer: no image URL found for variant', variant);
+        console.error('Customizer: no image for variant', variant);
         return;
       }
       if (src.startsWith('//')) src = window.location.protocol + src;
@@ -91,11 +105,13 @@
           zoomable:         false,
           scalable:         false,
         });
+        // Apply current aspect ratio if dimensions are set
+        updateAspectRatio();
       };
     }
 
-    // Variant change handler
-    let currentVariant = product.variants[1];
+    // Variant change
+    let currentVariant = product.variants[defaultIndex];
     renderImage(currentVariant);
     variantSelect.addEventListener('change', (e) => {
       currentVariant = product.variants[e.target.value];
@@ -103,16 +119,29 @@
       recalc();
     });
 
-    // Price & quantity calc
+    // Update crop-box aspect ratio based on inputs
+    function updateAspectRatio() {
+      const w = parseFloat(widthInput.value);
+      const h = parseFloat(heightInput.value);
+      if (cropper && w > 0 && h > 0) {
+        cropper.setAspectRatio(w / h);
+      }
+    }
+
+    // Price & quantity calculation
     function recalc() {
-      const w = parseFloat(widthInput.value),
-            h = parseFloat(heightInput.value);
+      const w = parseFloat(widthInput.value);
+      const h = parseFloat(heightInput.value);
       if (!(w > 0 && h > 0)) return;
 
-      const areaSqIn  = w * h,
-            areaSqFt  = areaSqIn / 144,
-            unitPrice = currentVariant.price / 100,
-            total     = unitPrice * areaSqFt;
+      // Update aspect ratio first
+      updateAspectRatio();
+
+      // Compute area & price
+      const areaSqIn  = w * h;
+      const areaSqFt  = areaSqIn / 144;
+      const unitPrice = currentVariant.price / 100;
+      const total     = unitPrice * areaSqFt;
 
       priceDisplay.innerText = `Price: $${total.toFixed(2)}`;
       if (qtyInput) qtyInput.value = areaSqFt.toFixed(2);
@@ -123,12 +152,10 @@
     console.log('Customizer initialized');
   }
 
-  // 3) Load and init
+  // 3) Load Cropper & init on DOM ready
   document.addEventListener('DOMContentLoaded', () => {
     loadCropper()
       .then(initCustomizer)
-      .catch(err =>
-        console.error('Customizer: failed loading Cropper.js', err)
-      );
+      .catch(err => console.error('Customizer: failed to load Cropper.js', err));
   });
 })();
