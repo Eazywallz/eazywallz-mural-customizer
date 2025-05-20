@@ -1,23 +1,17 @@
-// public/customizer.js
 ;(function () {
-  // 1) Dynamically load Cropper.js & its CSS
+  // 1) Dynamically load Cropper.js & CSS
   function loadCropper() {
     return new Promise((resolve, reject) => {
-      // Load CSS
       const link = document.createElement('link');
       link.rel = 'stylesheet';
       link.href =
         'https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css';
       document.head.appendChild(link);
 
-      // Load JS
       const script = document.createElement('script');
       script.src =
         'https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js';
-      script.onload = () => {
-        console.log('Mural Customizer: Cropper.js loaded');
-        resolve();
-      };
+      script.onload  = () => { console.log('Cropper.js loaded'); resolve(); };
       script.onerror = (err) => reject(err);
       document.head.appendChild(script);
     });
@@ -26,34 +20,28 @@
   // 2) Initialize the customizer
   function initCustomizer() {
     const container = document.getElementById('mural-customizer');
-    if (!container) {
-      console.warn('Mural Customizer: container missing');
-      return;
-    }
+    if (!container) return console.warn('Customizer: missing container');
 
-    // Constrain widget width and center it
+    // Style constraints
     container.style.maxWidth = '500px';
     container.style.margin   = '1rem auto';
 
-    // Parse product JSON from the data attribute
+    // Parse product JSON
     let product;
     try {
       product = JSON.parse(container.dataset.product);
-    } catch (err) {
-      console.error('Mural Customizer: failed to parse product JSON', err);
-      return;
+    } catch (e) {
+      return console.error('Customizer: invalid product JSON', e);
     }
-    console.log('Mural Customizer: product loaded', product);
+    console.log('Customizer: product', product);
 
-    // Build UI elements
+    // UI: variant select, width/height inputs, price display
     const variantSelect = document.createElement('select');
     product.variants.forEach((v, i) => {
-      const opt = document.createElement('option');
-      opt.value = i;
-      opt.text  = v.title;
-      variantSelect.appendChild(opt);
+      const o = document.createElement('option');
+      o.value = i; o.text = v.title;
+      variantSelect.append(o);
     });
-
     const widthInput = Object.assign(document.createElement('input'), {
       type: 'number', placeholder: 'Width (in)', min: 1
     });
@@ -65,52 +53,48 @@
 
     container.append(variantSelect, widthInput, heightInput, priceDisplay);
 
-    // Locate Shopify's quantity input
+    // Shopify quantity field
     const qtyInput = document.querySelector('input[name="quantity"]');
-    if (qtyInput) {
-      qtyInput.step = 'any';
-      qtyInput.min  = 0;
-    }
+    if (qtyInput) { qtyInput.step = 'any'; qtyInput.min = 0; }
 
-    // Image + Cropper setup
+    // Image + Cropper
     let cropper, imgEl;
     function renderImage(variant) {
-      // Remove prior cropper + image
+      // Cleanup old
       if (cropper) { cropper.destroy(); imgEl.remove(); }
 
-      // Determine image src
+      // Safe lookup with optional chaining
       let src =
-        (variant.image && variant.image.src) ||
-        (variant.featured_image && variant.featured_image.src) ||
-        (product.images && product.images[0]);
+        variant.image?.src ??
+        variant.featured_image?.src ??
+        (Array.isArray(product.images) ? product.images[0] : null);
+
       if (!src) {
-        console.error('Mural Customizer: no image for variant', variant);
+        console.error('Customizer: no image URL found for variant', variant);
         return;
       }
-      if (src.startsWith('//')) {
-        src = window.location.protocol + src;
-      }
+      if (src.startsWith('//')) src = window.location.protocol + src;
 
       imgEl = document.createElement('img');
-      imgEl.src = src;
+      imgEl.src       = src;
       imgEl.style.width   = '100%';
       imgEl.style.display = 'block';
       container.appendChild(imgEl);
 
       imgEl.onload = () => {
         cropper = new Cropper(imgEl, {
-          viewMode:        1,           // restrict the crop box to not exceed the canvas
-          autoCropArea:    1,           // start with the full image cropped
-          dragMode:        'none',      // disable dragging the image itself
-          cropBoxMovable:  true,        // allow moving the crop box
-          cropBoxResizable:true,        // allow resizing the crop box
-          zoomable:        false,       // disable pinch-zoom
-          scalable:        false        // disable double-click to scale
+          viewMode:         1,
+          autoCropArea:     1,
+          dragMode:         'none',
+          cropBoxMovable:   true,
+          cropBoxResizable: true,
+          zoomable:         false,
+          scalable:         false,
         });
       };
     }
 
-    // Handle variant changes
+    // Variant change handler
     let currentVariant = product.variants[1];
     renderImage(currentVariant);
     variantSelect.addEventListener('change', (e) => {
@@ -119,7 +103,7 @@
       recalc();
     });
 
-    // Price & quantity calculations
+    // Price & quantity calc
     function recalc() {
       const w = parseFloat(widthInput.value),
             h = parseFloat(heightInput.value);
@@ -136,15 +120,15 @@
     widthInput .addEventListener('input', recalc);
     heightInput.addEventListener('input', recalc);
 
-    console.log('Mural Customizer initialized');
+    console.log('Customizer initialized');
   }
 
-  // 3) Kick things off once the DOM is ready
+  // 3) Load and init
   document.addEventListener('DOMContentLoaded', () => {
     loadCropper()
       .then(initCustomizer)
       .catch(err =>
-        console.error('Mural Customizer: failed loading Cropper.js', err)
+        console.error('Customizer: failed loading Cropper.js', err)
       );
   });
 })();
