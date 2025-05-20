@@ -202,7 +202,7 @@
         cropBox.appendChild(line);
       }
     }
-    function clearPanels(){(){
+    function clearPanels(){
       container.querySelectorAll('.panel-line').forEach(el => el.remove());
     }
 
