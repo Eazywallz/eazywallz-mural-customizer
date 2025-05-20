@@ -36,6 +36,7 @@
     }
     console.log('Customizer: product loaded', product);
 
+    // Control panel
     const controlsDiv = document.createElement('div');
     controlsDiv.style.display = 'flex';
     controlsDiv.style.flexWrap = 'wrap';
@@ -63,28 +64,30 @@
     const widthInput = Object.assign(document.createElement('input'), { type:'number', placeholder:'Width', min:1 });
     const heightInput = Object.assign(document.createElement('input'), { type:'number', placeholder:'Height', min:1 });
 
-    // Flip selector
+    // Flip selector (no label needed separate)
     const flipSelect = document.createElement('select');
-    [['none','None'], ['horizontal','Flip H'], ['vertical','Flip V'], ['both','Flip Both']]
-      .forEach(([val, txt]) => {
-        const o = document.createElement('option'); o.value = val; o.text = txt;
-        flipSelect.appendChild(o);
-      });
+    [['none','None'], ['horizontal','Flip Horizontal'], ['vertical','Flip Vertical'], ['both','Flip Both']]
+      .forEach(([val, txt]) => { const o = document.createElement('option'); o.value = val; o.text = txt; flipSelect.appendChild(o); });
 
     // Black & White toggle
-    const bwCheckbox = document.createElement('input'); bwCheckbox.type = 'checkbox'; bwCheckbox.id = 'bw-toggle';
-    const bwLabel = document.createElement('label'); bwLabel.htmlFor = 'bw-toggle'; bwLabel.textContent = 'B&W';
+    const bwLabel = document.createElement('label');
+    const bwCheckbox = document.createElement('input'); bwCheckbox.type = 'checkbox';
+    bwLabel.append(bwCheckbox, document.createTextNode(' B&W'));
 
-    controlsDiv.append(unitSelect, variantSelect, widthInput, heightInput, flipSelect, bwCheckbox, bwLabel);
+    // Append controls
+    controlsDiv.append(unitSelect, variantSelect, widthInput, heightInput, flipSelect, bwLabel);
     container.appendChild(controlsDiv);
 
+    // Price display
     const priceDisplay = document.createElement('div'); priceDisplay.innerText = 'Price: $0.00';
     container.appendChild(priceDisplay);
 
+    // Shopify quantity
     const qtyInput = document.querySelector('input[name="quantity"]');
-    if (qtyInput) { qtyInput.step = 'any'; qtyInput.min = 0; }
+    if (qtyInput) { qtyInput.step='any'; qtyInput.min=0; }
 
     let cropper, imgEl;
+    let flipX=false, flipY=false;
 
     function renderImage(variant, idx) {
       if (cropper) { cropper.destroy(); imgEl.remove(); }
@@ -94,20 +97,19 @@
       if (src.startsWith('//')) src = window.location.protocol + src;
 
       imgEl = document.createElement('img'); imgEl.src = src;
-      imgEl.style.width = '100%'; imgEl.style.display = 'block';
+      imgEl.style.width='100%'; imgEl.style.display='block';
       container.appendChild(imgEl);
 
       imgEl.onload = () => {
         cropper = new Cropper(imgEl, {
-          viewMode: 1,
-          autoCropArea: 1,
-          dragMode: 'none',
-          cropBoxMovable: true,
-          cropBoxResizable: true,
-          zoomable: false,
-          scalable: false
+          viewMode:1, autoCropArea:1,
+          dragMode:'none', cropBoxMovable:true, cropBoxResizable:true,
+          zoomable:false, scalable:false
         });
         updateAspectRatio();
+        // reset flips
+        flipX=flipY=false;
+        cropper.scaleX(1); cropper.scaleY(1);
         applyFlips();
         applyBW();
       };
@@ -118,14 +120,14 @@
     renderImage(currentVariant, currentIdx);
 
     variantSelect.addEventListener('change', e => {
-      currentIdx = parseInt(e.target.value, 10);
+      currentIdx = parseInt(e.target.value,10);
       currentVariant = product.variants[currentIdx];
       renderImage(currentVariant, currentIdx);
       recalc();
     });
 
     function toInches(v) {
-      const n = parseFloat(v); if (!(n>0)) return NaN;
+      const n=parseFloat(v); if(!(n>0))return NaN;
       switch(unitSelect.value) {
         case 'feet': return n*12;
         case 'cm': return n*0.393700787;
@@ -134,37 +136,33 @@
     }
 
     function updateAspectRatio() {
-      const w = toInches(widthInput.value);
-      const h = toInches(heightInput.value);
-      if (cropper && w>0 && h>0) cropper.setAspectRatio(w/h);
+      const w = toInches(widthInput.value), h = toInches(heightInput.value);
+      if(cropper && w>0 && h>0) cropper.setAspectRatio(w/h);
     }
 
     function applyFlips() {
-      if (!cropper) return;
-      const sx = (flipSelect.value==='horizontal'||flipSelect.value==='both') ? -1 : 1;
-      const sy = (flipSelect.value==='vertical'  ||flipSelect.value==='both') ? -1 : 1;
-      cropper.scaleX(sx);
-      cropper.scaleY(sy);
+      if(!cropper) return;
+      const wantX = flipSelect.value==='horizontal' || flipSelect.value==='both';
+      if(wantX!==flipX){ cropper.scaleX(-1); flipX=wantX; }
+      const wantY = flipSelect.value==='vertical' || flipSelect.value==='both';
+      if(wantY!==flipY){ cropper.scaleY(-1); flipY=wantY; }
     }
     flipSelect.addEventListener('change', applyFlips);
 
     function applyBW() {
-      if (!imgEl) return;
+      if(!cropper) return;
       imgEl.style.filter = bwCheckbox.checked ? 'grayscale(100%)' : '';
     }
     bwCheckbox.addEventListener('change', applyBW);
 
     function recalc() {
-      const w = toInches(widthInput.value);
-      const h = toInches(heightInput.value);
-      if (!(w>0 && h>0)) return;
+      const w = toInches(widthInput.value), h = toInches(heightInput.value);
+      if(!(w>0&&h>0)) return;
       updateAspectRatio();
-      const areaSqIn = w*h;
-      const areaSqFt = areaSqIn/144;
-      const unitPrice = currentVariant.price/100;
-      const total = unitPrice*areaSqFt;
-      priceDisplay.innerText = `Price: $${total.toFixed(2)}`;
-      if(qtyInput) qtyInput.value = areaSqFt.toFixed(2);
+      const areaSqIn = w*h, areaSqFt=areaSqIn/144;
+      const unitPrice=currentVariant.price/100, total=unitPrice*areaSqFt;
+      priceDisplay.innerText=`Price: $${total.toFixed(2)}`;
+      if(qtyInput) qtyInput.value=areaSqFt.toFixed(2);
     }
     widthInput.addEventListener('input', recalc);
     heightInput.addEventListener('input', recalc);
@@ -173,9 +171,7 @@
     console.log('Customizer initialized');
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    loadCropper()
-      .then(initCustomizer)
-      .catch(err => console.error('Customizer: failed to load Cropper.js', err));
+  document.addEventListener('DOMContentLoaded', ()=>{
+    loadCropper().then(initCustomizer).catch(err=>console.error('Customizer: failed to load Cropper.js', err));
   });
 })();
