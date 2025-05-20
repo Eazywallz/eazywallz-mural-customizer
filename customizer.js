@@ -3,13 +3,11 @@
   // 1) Dynamically load Cropper.js & its CSS
   function loadCropper() {
     return new Promise((resolve, reject) => {
-      // CSS
       const link = document.createElement('link');
       link.rel  = 'stylesheet';
       link.href = 'https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css';
       document.head.appendChild(link);
 
-      // JS
       const script = document.createElement('script');
       script.src     = 'https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js';
       script.onload  = () => { console.log('Cropper.js loaded'); resolve(); };
@@ -26,11 +24,9 @@
       return;
     }
 
-    // Constrain widget width and center it
     container.style.maxWidth = '500px';
     container.style.margin   = '1rem auto';
 
-    // Parse product JSON
     let product;
     try {
       product = JSON.parse(container.dataset.product);
@@ -40,7 +36,6 @@
     }
     console.log('Customizer: product loaded', product);
 
-    // Create control panel
     const controlsDiv = document.createElement('div');
     controlsDiv.style.display = 'flex';
     controlsDiv.style.flexWrap = 'wrap';
@@ -49,101 +44,57 @@
 
     // Unit selector
     const unitSelect = document.createElement('select');
-    [['inches','Inches'], ['feet','Feet'], ['cm','Centimeters']].forEach(([val, txt]) => {
-      const opt = document.createElement('option');
-      opt.value = val;
-      opt.text = txt;
-      unitSelect.appendChild(opt);
-    });
+    [['inches','Inches'], ['feet','Feet'], ['cm','Centimeters']]
+      .forEach(([val, txt]) => {
+        const opt = document.createElement('option'); opt.value = val; opt.text = txt;
+        unitSelect.appendChild(opt);
+      });
 
     // Variant selector
     const variantSelect = document.createElement('select');
     product.variants.forEach((v, i) => {
-      const opt = document.createElement('option');
-      opt.value = i;
-      opt.text = v.title;
+      const opt = document.createElement('option'); opt.value = i; opt.text = v.title;
       variantSelect.appendChild(opt);
     });
     const defaultIndex = product.variants.length > 1 ? 1 : 0;
     variantSelect.selectedIndex = defaultIndex;
 
     // Dimension inputs
-    const widthInput = Object.assign(document.createElement('input'), {
-      type: 'number', placeholder: 'Width', min: 1
-    });
-    const heightInput = Object.assign(document.createElement('input'), {
-      type: 'number', placeholder: 'Height', min: 1
-    });
+    const widthInput = Object.assign(document.createElement('input'), { type:'number', placeholder:'Width', min:1 });
+    const heightInput = Object.assign(document.createElement('input'), { type:'number', placeholder:'Height', min:1 });
 
     // Flip selector
     const flipSelect = document.createElement('select');
     [['none','None'], ['horizontal','Flip H'], ['vertical','Flip V'], ['both','Flip Both']]
       .forEach(([val, txt]) => {
-        const o = document.createElement('option');
-        o.value = val;
-        o.text = txt;
+        const o = document.createElement('option'); o.value = val; o.text = txt;
         flipSelect.appendChild(o);
       });
 
     // Black & White toggle
-    const bwCheckbox = document.createElement('input');
-    bwCheckbox.type = 'checkbox';
-    bwCheckbox.id = 'bw-toggle';
-    const bwLabel = document.createElement('label');
-    bwLabel.htmlFor = 'bw-toggle';
-    bwLabel.textContent = 'B&W';
+    const bwCheckbox = document.createElement('input'); bwCheckbox.type = 'checkbox'; bwCheckbox.id = 'bw-toggle';
+    const bwLabel = document.createElement('label'); bwLabel.htmlFor = 'bw-toggle'; bwLabel.textContent = 'B&W';
 
-    // Append controls
-    controlsDiv.append(
-      unitSelect,
-      variantSelect,
-      widthInput,
-      heightInput,
-      flipSelect,
-      bwCheckbox,
-      bwLabel
-    );
+    controlsDiv.append(unitSelect, variantSelect, widthInput, heightInput, flipSelect, bwCheckbox, bwLabel);
     container.appendChild(controlsDiv);
 
-    // Price display
-    const priceDisplay = document.createElement('div');
-    priceDisplay.innerText = 'Price: $0.00';
+    const priceDisplay = document.createElement('div'); priceDisplay.innerText = 'Price: $0.00';
     container.appendChild(priceDisplay);
 
-    // Shopify quantity field
     const qtyInput = document.querySelector('input[name="quantity"]');
-    if (qtyInput) {
-      qtyInput.step = 'any';
-      qtyInput.min = 0;
-    }
+    if (qtyInput) { qtyInput.step = 'any'; qtyInput.min = 0; }
 
-    // Image + Cropper
     let cropper, imgEl;
+
     function renderImage(variant, idx) {
-      if (cropper) {
-        cropper.destroy();
-        imgEl.remove();
-      }
-
-      // Safe lookup
-      let src =
-        variant.image?.src ??
-        variant.featured_image?.src ??
-        (Array.isArray(product.images) && product.images[idx]
-          ? product.images[idx]
-          : product.images[0]
-        );
-
-      if (!src) {
-        console.error('Customizer: no image for variant', variant);
-        return;
-      }
+      if (cropper) { cropper.destroy(); imgEl.remove(); }
+      let src = variant.image?.src ?? variant.featured_image?.src
+        ?? ((Array.isArray(product.images) && product.images[idx]) ? product.images[idx] : product.images[0]);
+      if (!src) { console.error('Customizer: no image', variant); return; }
       if (src.startsWith('//')) src = window.location.protocol + src;
 
-      imgEl = document.createElement('img');
-      imgEl.src = src;
-      imgEl.style.width = '100%';
-      imgEl.style.display = 'block';
+      imgEl = document.createElement('img'); imgEl.src = src;
+      imgEl.style.width = '100%'; imgEl.style.display = 'block';
       container.appendChild(imgEl);
 
       imgEl.onload = () => {
@@ -166,7 +117,6 @@
     let currentVariant = product.variants[currentIdx];
     renderImage(currentVariant, currentIdx);
 
-    // Variant change
     variantSelect.addEventListener('change', e => {
       currentIdx = parseInt(e.target.value, 10);
       currentVariant = product.variants[currentIdx];
@@ -175,11 +125,10 @@
     });
 
     function toInches(v) {
-      const n = parseFloat(v);
-      if (!(n > 0)) return NaN;
-      switch (unitSelect.value) {
-        case 'feet': return n * 12;
-        case 'cm': return n * 0.393700787;
+      const n = parseFloat(v); if (!(n>0)) return NaN;
+      switch(unitSelect.value) {
+        case 'feet': return n*12;
+        case 'cm': return n*0.393700787;
         default: return n;
       }
     }
@@ -187,39 +136,35 @@
     function updateAspectRatio() {
       const w = toInches(widthInput.value);
       const h = toInches(heightInput.value);
-      if (cropper && w > 0 && h > 0) {
-        cropper.setAspectRatio(w / h);
-      }
+      if (cropper && w>0 && h>0) cropper.setAspectRatio(w/h);
     }
 
     function applyFlips() {
-      const img = container.querySelector('.cropper-container img');
-      if (!img) return;
-      let sx = 1, sy = 1;
-      if (flipSelect.value === 'horizontal' || flipSelect.value === 'both') sx = -1;
-      if (flipSelect.value === 'vertical'   || flipSelect.value === 'both') sy = -1;
-      img.style.transform = `scaleX(${sx}) scaleY(${sy})`;
+      if (!cropper) return;
+      const sx = (flipSelect.value==='horizontal'||flipSelect.value==='both') ? -1 : 1;
+      const sy = (flipSelect.value==='vertical'  ||flipSelect.value==='both') ? -1 : 1;
+      cropper.scaleX(sx);
+      cropper.scaleY(sy);
     }
     flipSelect.addEventListener('change', applyFlips);
 
     function applyBW() {
-      const img = container.querySelector('.cropper-container img');
-      if (!img) return;
-      img.style.filter = bwCheckbox.checked ? 'grayscale(100%)' : '';
+      if (!imgEl) return;
+      imgEl.style.filter = bwCheckbox.checked ? 'grayscale(100%)' : '';
     }
     bwCheckbox.addEventListener('change', applyBW);
 
     function recalc() {
       const w = toInches(widthInput.value);
       const h = toInches(heightInput.value);
-      if (!(w > 0 && h > 0)) return;
+      if (!(w>0 && h>0)) return;
       updateAspectRatio();
-      const areaSqIn = w * h;
-      const areaSqFt = areaSqIn / 144;
-      const unitPrice = currentVariant.price / 100;
-      const total = unitPrice * areaSqFt;
+      const areaSqIn = w*h;
+      const areaSqFt = areaSqIn/144;
+      const unitPrice = currentVariant.price/100;
+      const total = unitPrice*areaSqFt;
       priceDisplay.innerText = `Price: $${total.toFixed(2)}`;
-      if (qtyInput) qtyInput.value = areaSqFt.toFixed(2);
+      if(qtyInput) qtyInput.value = areaSqFt.toFixed(2);
     }
     widthInput.addEventListener('input', recalc);
     heightInput.addEventListener('input', recalc);
