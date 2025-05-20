@@ -65,7 +65,7 @@
 
     // Flip selector
     const flipSelect = document.createElement('select');
-    [['none','None'], ['horizontal','Flip Horizontal'], ['vertical','Flip Vertical'], ['both','Flip Both']]
+    [['none','None'], ['horizontal','Flip H'], ['vertical','Flip V'], ['both','Flip Both']]
       .forEach(([val, txt]) => { const o = document.createElement('option'); o.value = val; o.text = txt; flipSelect.appendChild(o); });
 
     // Black & White toggle
@@ -87,7 +87,7 @@
     let cropper, imgEl;
 
     function renderImage(variant, idx) {
-      if (cropper) { cropper.destroy(); imgEl.remove(); }
+      if (cropper) { cropper.destroy(); imgEl.parentNode.removeChild(imgEl); }
       let src = variant.image?.src ?? variant.featured_image?.src
         ?? ((Array.isArray(product.images) && product.images[idx]) ? product.images[idx] : product.images[0]);
       if (!src) { console.error('Customizer: no image', variant); return; }
@@ -108,8 +108,6 @@
           scalable: false
         });
         updateAspectRatio();
-        // Reset flips in data
-        const data = cropper.getData(); data.scaleX = 1; data.scaleY = 1; cropper.setData(data);
         applyFlips();
         applyBW();
       };
@@ -144,12 +142,14 @@
 
     function applyFlips() {
       if (!cropper) return;
-      const sx = (flipSelect.value === 'horizontal' || flipSelect.value === 'both') ? -1 : 1;
-      const sy = (flipSelect.value === 'vertical'   || flipSelect.value === 'both') ? -1 : 1;
-      const data = cropper.getData();
-      data.scaleX = sx;
-      data.scaleY = sy;
-      cropper.setData(data);
+      // Cropper's scaleX/Y multiplies current scale, so to set absolute, do ratio
+      const imgData = cropper.getImageData();
+      const currentSX = imgData.scaleX || 1;
+      const currentSY = imgData.scaleY || 1;
+      const desiredSX = (flipSelect.value === 'horizontal' || flipSelect.value === 'both') ? -1 : 1;
+      const desiredSY = (flipSelect.value === 'vertical'   || flipSelect.value === 'both') ? -1 : 1;
+      cropper.scaleX(desiredSX / currentSX);
+      cropper.scaleY(desiredSY / currentSY);
     }
     flipSelect.addEventListener('change', applyFlips);
 
