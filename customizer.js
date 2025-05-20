@@ -127,22 +127,13 @@
     function updateAspectRatio(){ const w=toInches(widthInput.value),h=toInches(heightInput.value); if(cropper&&w>0&&h>0) cropper.setAspectRatio(w/h); }
 
     function applyFlips() {
-      if (!cropper) return;
-      // determine desired scales
-      const desiredSX = (flipSelect.value === 'horizontal' || flipSelect.value === 'both') ? -1 : 1;
-      const desiredSY = (flipSelect.value === 'vertical'   || flipSelect.value === 'both') ? -1 : 1;
-      // apply X flip only if change needed
-      if (desiredSX !== currentSX) {
-        cropper.scaleX(-1);
-        currentSX = desiredSX;
-      }
-      // apply Y flip only if change needed
-      if (desiredSY !== currentSY) {
-        cropper.scaleY(-1);
-        currentSY = desiredSY;
-      }
+      const canvasWrapper = container.querySelector('.cropper-container .cropper-canvas');
+      if (!canvasWrapper) return;
+      const sx = flipSelect.value.includes('horizontal') ? -1 : 1;
+      const sy = flipSelect.value.includes('vertical')   ? -1 : 1;
+      canvasWrapper.style.transform = `scale(${sx}, ${sy})`;
     }
-    flipSelect.addEventListener('change', applyFlips);('change', applyFlips);
+    flipSelect.addEventListener('change', applyFlips);('change', applyFlips);('change', applyFlips);
 
     function applyBW(){
       const wrapper = container.querySelector('.cropper-container');
