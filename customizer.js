@@ -1,391 +1,329 @@
 // public/customizer.js
-;(function () {
-  // 1) Dynamically load Cropper.js & its CSS
-  function loadCropper() {
-    return new Promise((resolve, reject) => {
-      // CSS
+;(function(){
+  // 1) Load Cropper.js + CSS
+  function loadCropper(){
+    return new Promise((res, rej)=>{
       const link = document.createElement('link');
-      link.rel  = 'stylesheet';
+      link.rel = 'stylesheet';
       link.href = 'https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css';
       document.head.appendChild(link);
 
-      // JS
       const script = document.createElement('script');
-      script.src     = 'https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js';
-      script.onload  = () => { console.log('Cropper.js loaded'); resolve(); };
-      script.onerror = (err) => reject(err);
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js';
+      script.onload  = ()=>{ console.log('Cropper.js loaded'); res(); };
+      script.onerror = rej;
       document.head.appendChild(script);
     });
   }
 
-  // 2) Initialize the customizer
-  function initCustomizer() {
+  // 2) Init
+  function initCustomizer(){
     const container = document.getElementById('mural-customizer');
-    if (!container) {
-      console.warn('Customizer: container missing');
-      return;
-    }
+    if(!container) return console.warn('Customizer: container missing');
 
-    // Constrain widget width and center it
-    container.style.maxWidth = '500px';
-    container.style.margin   = '1rem auto';
-
-    // Parse product JSON
+    // pull in JSON
     let product;
-    try {
-      product = JSON.parse(container.dataset.product);
-    } catch (err) {
-      console.error('Customizer: invalid product JSON', err);
-      return;
-    }
-    console.log('Customizer: product loaded', product);
+    try { product = JSON.parse(container.dataset.product); }
+    catch{ return console.error('Customizer: bad JSON'); }
 
-    // --- Create or persist open button ---
+    //— inject “Customize” button
     let openBtn = document.getElementById('customizer-open-btn');
-    if (!openBtn) {
+    if(!openBtn){
       openBtn = document.createElement('button');
       openBtn.id = 'customizer-open-btn';
-      openBtn.type = 'button';
       openBtn.innerText = 'Customize Mural';
-      Object.assign(openBtn.style, {
-        margin: '1rem 0',
-        padding: '0.5rem 1rem',
-        background: '#007bff',
-        color: '#fff',
-        border: 'none',
-        cursor: 'pointer'
+      Object.assign(openBtn.style,{
+        margin:'1rem 0',padding:'0.5rem 1rem',
+        background:'#007bff',color:'#fff',border:'none',cursor:'pointer'
       });
-      container.insertBefore(openBtn, container.firstChild);
+      container.insertBefore(openBtn,container.firstChild);
     }
 
-    // --- Overlay and modal container ---
+    //— overlay & modal
     let overlay = document.getElementById('customizer-overlay');
-    if (!overlay) {
+    if(!overlay){
       overlay = document.createElement('div');
       overlay.id = 'customizer-overlay';
-      Object.assign(overlay.style, {
-        position: 'fixed',
-        top: 0, left: 0,
-        width: '100vw',
-        height: '100vh',
-        background: 'rgba(0,0,0,0.5)',
-        display: 'none',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 10000
+      Object.assign(overlay.style,{
+        position:'fixed',top:0,left:0,
+        width:'100vw',height:'100vh',
+        background:'rgba(0,0,0,0.5)',
+        display:'none',
+        alignItems:'center',justifyContent:'center',
+        zIndex:10000
       });
       document.body.appendChild(overlay);
     }
 
     let modal = document.getElementById('customizer-modal');
-    if (!modal) {
+    if(!modal){
       modal = document.createElement('div');
       modal.id = 'customizer-modal';
-      Object.assign(modal.style, {
-        background: '#fff',
-        borderRadius: '8px',
-        width: '75vw',
-        height: '75vh',
-        maxWidth: '1200px',
-        maxHeight: '900px',
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'relative',
-        overflow: 'hidden'
+      Object.assign(modal.style,{
+        background:'#fff',
+        borderRadius:'8px',
+        width:'100vw',      // full width
+        height:'100vh',     // full height
+        maxWidth:'none',
+        maxHeight:'none',
+        display:'flex',
+        flexDirection:'column',
+        position:'relative',
+        overflow:'hidden'
       });
       overlay.appendChild(modal);
     }
 
-    // Close button
+    //— close
     let closeBtn = document.getElementById('customizer-close-btn');
-    if (!closeBtn) {
+    if(!closeBtn){
       closeBtn = document.createElement('button');
       closeBtn.id = 'customizer-close-btn';
-      closeBtn.type = 'button';
       closeBtn.innerText = '✕';
-      Object.assign(closeBtn.style, {
-        position: 'absolute',
-        top: '10px',
-        right: '10px',
-        fontSize: '1.5rem',
-        background: 'transparent',
-        border: 'none',
-        cursor: 'pointer'
+      Object.assign(closeBtn.style,{
+        position:'absolute',top:'10px',right:'10px',
+        fontSize:'1.5rem',background:'transparent',
+        border:'none',cursor:'pointer',zIndex:10
       });
-      closeBtn.addEventListener('click', () => overlay.style.display = 'none');
+      closeBtn.onclick = ()=> overlay.style.display='none';
       modal.appendChild(closeBtn);
     }
 
-    // Controls bar
+    //— controls bar
     let controls = document.getElementById('customizer-controls');
-    if (!controls) {
+    if(!controls){
       controls = document.createElement('div');
       controls.id = 'customizer-controls';
-      Object.assign(controls.style, {
-        padding: '1rem',
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: '0.5rem',
-        borderBottom: '1px solid #ddd'
+      Object.assign(controls.style,{
+        padding:'1rem',display:'flex',flexWrap:'wrap',gap:'10px',
+        borderBottom:'1px solid #ddd',background:'#f9f9f9'
       });
       modal.appendChild(controls);
     }
 
-    // Canvas area
+    //— canvas area
     let canvasArea = document.getElementById('customizer-canvas');
-    if (!canvasArea) {
+    if(!canvasArea){
       canvasArea = document.createElement('div');
       canvasArea.id = 'customizer-canvas';
-      Object.assign(canvasArea.style, {
-        flex: '1 1 auto',
-        width: '100%',
-        height: '100%',
-        position: 'relative',
-        overflow: 'hidden',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
+      Object.assign(canvasArea.style,{
+        flex:'1 1 auto',minHeight:'0',    // allow flex child to grow
+        position:'relative',overflow:'hidden',
+        display:'flex',alignItems:'center',justifyContent:'center'
       });
       modal.appendChild(canvasArea);
     }
 
-    // Footer
+    //— footer
     let footer = document.getElementById('customizer-footer');
-    if (!footer) {
+    if(!footer){
       footer = document.createElement('div');
       footer.id = 'customizer-footer';
-      Object.assign(footer.style, {
-        padding: '1rem',
-        borderTop: '1px solid #ddd',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
+      Object.assign(footer.style,{
+        padding:'1rem',borderTop:'1px solid #ddd',
+        display:'flex',justifyContent:'space-between',alignItems:'center'
       });
       modal.appendChild(footer);
     }
 
-    // --- UI elements ---
-    // Units
+    // === UI ELEMENTS ===
+    // units
     const unitSelect = document.createElement('select');
-    unitSelect.id = 'unit-select';
     [['inches','Inches'],['feet','Feet'],['cm','Centimeters']]
-      .forEach(([v,t]) => {
-        const o = document.createElement('option');
-        o.value = v;
-        o.text  = t;
-        unitSelect.append(o);
+      .forEach(([v,t])=>{
+        const o=document.createElement('option');
+        o.value=v; o.text=t;
+        unitSelect.appendChild(o);
       });
-    controls.append(unitSelect);
+    controls.appendChild(unitSelect);
 
-    // Variant
+    // variant
     const variantSelect = document.createElement('select');
-    variantSelect.id = 'variant-select';
-    product.variants.forEach((v,i) => {
-      const o = document.createElement('option');
-      o.value = i;
-      o.text  = v.title;
-      variantSelect.append(o);
+    product.variants.forEach((v,i)=>{
+      const o=document.createElement('option');
+      o.value=i; o.text=v.title;
+      variantSelect.appendChild(o);
     });
-    controls.append(variantSelect);
+    controls.appendChild(variantSelect);
 
-    // Width/Height inputs
-    const widthInput  = Object.assign(document.createElement('input'),{id:'width-input',type:'number',placeholder:'Width',min:1});
-    const heightInput = Object.assign(document.createElement('input'),{id:'height-input',type:'number',placeholder:'Height',min:1});
-    controls.append(widthInput, heightInput);
+    // width/height
+    const widthInput = Object.assign(document.createElement('input'),{
+      type:'number',placeholder:'Width',min:1,style:'width:80px'
+    });
+    const heightInput=Object.assign(document.createElement('input'),{
+      type:'number',placeholder:'Height',min:1,style:'width:80px'
+    });
+    controls.append(widthInput,heightInput);
 
-    // Feet/inches split
-    const widthFeet    = Object.assign(document.createElement('input'),{id:'width-feet',type:'number',placeholder:'Feet',min:0,maxLength:3,hidden:true});
-    const widthInches  = Object.assign(document.createElement('input'),{id:'width-inches',type:'number',placeholder:'Inches',min:0,max:11,maxLength:2,hidden:true});
-    const heightFeet   = Object.assign(document.createElement('input'),{id:'height-feet',type:'number',placeholder:'Feet',min:0,maxLength:3,hidden:true});
-    const heightInches = Object.assign(document.createElement('input'),{id:'height-inches',type:'number',placeholder:'Inches',min:0,max:11,maxLength:2,hidden:true});
-    controls.append(widthFeet, widthInches, heightFeet, heightInches);
+    // feet/inches splits (hidden by default)
+    const widthFeet   = Object.assign(document.createElement('input'),{type:'number',placeholder:'ft',min:0,maxLength:3,hidden:true,style:'width:60px'});
+    const widthInches = Object.assign(document.createElement('input'),{type:'number',placeholder:'in',min:0,max:11,maxLength:2,hidden:true,style:'width:60px'});
+    const heightFeet  = Object.assign(document.createElement('input'),{type:'number',placeholder:'ft',min:0,maxLength:3,hidden:true,style:'width:60px'});
+    const heightInches= Object.assign(document.createElement('input'),{type:'number',placeholder:'in',min:0,max:11,maxLength:2,hidden:true,style:'width:60px'});
+    controls.append(widthFeet,widthInches,heightFeet,heightInches);
 
-    // Flip
+    // flip
     const flipSelect = document.createElement('select');
-    flipSelect.id = 'flip-select';
     [['none','None'],['horizontal','Flip H'],['vertical','Flip V']]
-      .forEach(([v,t]) => {
-        const o = document.createElement('option');
-        o.value = v;
-        o.text  = t;
-        flipSelect.append(o);
+      .forEach(([v,t])=>{
+        const o=document.createElement('option');
+        o.value=v; o.text=t;
+        flipSelect.appendChild(o);
       });
     controls.append(flipSelect);
 
-    // Black & white
-    const bwCheckbox = Object.assign(document.createElement('input'),{id:'bw-checkbox',type:'checkbox'});
-    const bwLabel    = document.createTextNode(' B&W ');
-    controls.append(bwCheckbox, bwLabel);
+    // B&W
+    const bwCheckbox = Object.assign(document.createElement('input'),{type:'checkbox'});
+    controls.append(bwCheckbox,document.createTextNode(' B&W '));
 
-    // Panels
-    const panelsCheckbox = Object.assign(document.createElement('input'),{id:'panels-checkbox',type:'checkbox'});
-    const panelsLabel    = document.createTextNode(' Show panels ');
-    controls.append(panelsCheckbox, panelsLabel);
+    // panels
+    const panelsCheckbox = Object.assign(document.createElement('input'),{type:'checkbox'});
+    controls.append(panelsCheckbox,document.createTextNode(' Show panels '));
 
-    // Price display & add button
+    // price & add
     const priceDiv = document.createElement('div');
-    priceDiv.id = 'price-display';
-    priceDiv.innerText = 'Price: $0.00';
+    priceDiv.innerText='Price: $0.00';
     const addBtn = document.createElement('button');
-    addBtn.id   = 'add-btn';
-    addBtn.type = 'button';
-    addBtn.innerText = 'Add to Cart';
+    addBtn.innerText='Add to Cart';
     Object.assign(addBtn.style,{
-      padding:'0.5rem 1rem',
-      background:'#007bff',
-      color:'#fff',
-      border:'none',
-      borderRadius:'4px',
-      cursor:'pointer'
+      padding:'0.5rem 1rem',background:'#007bff',
+      color:'#fff',border:'none',cursor:'pointer'
     });
-    footer.append(priceDiv, addBtn);
+    footer.append(priceDiv,addBtn);
 
-    // Quantity field
+    // quantity shim
     const qtyInput = document.querySelector('input[name="quantity"]');
-    if (qtyInput) { qtyInput.step='1'; qtyInput.min='1'; }
+    if(qtyInput){qtyInput.step='1';qtyInput.min='1';}
 
-    // --- Cropper and logic ---
-    let cropper, imgEl;
+    // === CROPPER LOGIC ===
+    let cropper, imgEl, flipX=1, flipY=1;
 
-    function clearCanvas() {
-      if (cropper) cropper.destroy();
-      canvasArea.innerHTML = '';
+    function clearCanvas(){
+      if(cropper) cropper.destroy();
+      canvasArea.innerHTML='';
     }
 
-    function renderImage() {
+    function renderImage(){
       clearCanvas();
       let src = product.variants[variantSelect.value].image?.src
              || product.variants[variantSelect.value].featured_image?.src
              || product.images[0];
-      if (src.startsWith('//')) src = window.location.protocol + src;
+      if(src.startsWith('//')) src = location.protocol + src;
 
       imgEl = document.createElement('img');
       imgEl.src = src;
-      // Make the image fill the canvas area responsively
-      Object.assign(imgEl.style, {
-        width: '100%',
-        height: '100%',
-        objectFit: 'contain',
-        display: 'block'
+      Object.assign(imgEl.style,{
+        width:'100%',height:'100%',objectFit:'contain'
       });
 
-      imgEl.onload = () => {
+      imgEl.onload = ()=>{
         canvasArea.appendChild(imgEl);
-
         cropper = new Cropper(imgEl, {
-          viewMode:1,
-          autoCropArea:1,
-          dragMode:'move',
-          cropBoxMovable:false,
-          cropBoxResizable:false,
-          zoomable:false,
-          scalable:false,
-          responsive:true,
-          ready() {
-            // stretch cropper canvas to full container
+          viewMode:1,autoCropArea:1,dragMode:'move',
+          cropBoxMovable:false,cropBoxResizable:false,
+          zoomable:false,scalable:false,responsive:true,
+          ready(){
+            // fill full area
             const cd = cropper.getContainerData();
-            cropper.setCanvasData({ left:0, top:0, width:cd.width, height:cd.height });
+            cropper.setCanvasData({left:0,top:0,width:cd.width,height:cd.height});
             updateAll();
-            if (panelsCheckbox.checked) drawPanels();
+            if(panelsCheckbox.checked) drawPanels();
           }
         });
-
-        // redraw panels on move/end
-        ['cropmove','cropend'].forEach(evt =>
-          cropper.on(evt, () => { if (panelsCheckbox.checked) drawPanels(); })
-        );
+        cropper.on('cropmove', ()=>panelsCheckbox.checked && drawPanels());
+        cropper.on('cropend',  ()=>panelsCheckbox.checked && drawPanels());
       };
     }
 
-    function toInches(v) {
-      return unitSelect.value==='cm' ? v * 0.393700787 : v;
-    }
-    function getW() {
+    function toInches(v){ return unitSelect.value==='cm'? v*0.393700787 : v; }
+    function getW(){
       return unitSelect.value==='feet'
         ? ((+widthFeet.value||0)*12 + (+widthInches.value||0))
         : toInches(+widthInput.value||0);
     }
-    function getH() {
+    function getH(){
       return unitSelect.value==='feet'
         ? ((+heightFeet.value||0)*12 + (+heightInches.value||0))
         : toInches(+heightInput.value||0);
     }
 
     function updateAll(){
-      const w = getW(), h = getH();
-      if (cropper && w > 0 && h > 0) {
-        cropper.setAspectRatio(w/h);
-        const sqft = Math.ceil((w*h)/144) || 1;
-        const priceCents = +product.variants[variantSelect.value].price;
-        priceDiv.innerText = `Price: $${((priceCents/100)*sqft).toFixed(2)}`;
-        if (qtyInput) qtyInput.value = sqft;
-      }
+      const w=getW(), h=getH();
+      if(!cropper||w<=0||h<=0) return;
+      cropper.setAspectRatio(w/h);
+      const sqft = Math.ceil((w*h)/144)||1;
+      const cents= +product.variants[variantSelect.value].price;
+      priceDiv.innerText=`Price: $${((cents/100)*sqft).toFixed(2)}`;
+      if(qtyInput) qtyInput.value=sqft;
     }
 
     function applyFlip(){
-      const wrapper = canvasArea.querySelector('.cropper-canvas');
-      if (wrapper) {
-        wrapper.style.transform =
-          flipSelect.value==='horizontal' ? 'scaleX(-1)' :
-          flipSelect.value==='vertical'   ? 'scaleY(-1)' : '';
-      }
+      if(!cropper) return;
+      // flip via Cropper methods
+      flipX = flipSelect.value==='horizontal'? -1 : 1;
+      flipY = flipSelect.value==='vertical'?   -1 : 1;
+      cropper.scaleX(flipX);
+      cropper.scaleY(flipY);
     }
 
     function applyBW(){
-      const wrapper = canvasArea.querySelector('.cropper-canvas');
-      if (wrapper) {
-        wrapper.style.filter = bwCheckbox.checked ? 'grayscale(100%)' : '';
-      }
+      if(!imgEl) return;
+      imgEl.style.filter = bwCheckbox.checked? 'grayscale(100%)' : '';
     }
 
     function drawPanels(){
-      if (!cropper) return;
-      // remove old lines
-      modal.querySelectorAll('.panel-line').forEach(l => l.remove());
+      if(!cropper) return;
+      // remove old
+      modal.querySelectorAll('.panel-line').forEach(l=>l.remove());
       const cb    = cropper.getCropBoxData();
       const total = getW();
-      const maxW  = 25; // in inches
+      const maxW  = 25;
       const count = Math.ceil(total/maxW);
       const step  = cb.width/count;
-      for (let i=1; i<count; i++) {
+      for(let i=1;i<count;i++){
         const x = cb.left + step*i;
         const line = document.createElement('div');
-        line.className = 'panel-line';
-        Object.assign(line.style, {
-          position:   'absolute',
-          top:        `${cb.top}px`,
-          left:       `${x}px`,
-          height:     `${cb.height}px`,
-          width:      '2px',
-          background: 'rgba(255,0,0,0.7)',
-          pointerEvents: 'none'
+        line.className='panel-line';
+        Object.assign(line.style,{
+          position:'absolute',
+          top:   `${cb.top}px`,
+          left:  `${x}px`,
+          height:`${cb.height}px`,
+          width:'2px',
+          background:'rgba(255,0,0,0.7)',
+          pointerEvents:'none'
         });
         modal.appendChild(line);
       }
     }
 
-    // --- Event bindings ---
-    openBtn.addEventListener('click', () => overlay.style.display = 'flex');
-    variantSelect.addEventListener('change', () => { renderImage(); applyFlip(); applyBW(); });
-    unitSelect.addEventListener('change', () => {
-      const feet = unitSelect.value==='feet';
-      widthInput.hidden = heightInput.hidden = !feet;
-      [widthFeet,widthInches,heightFeet,heightInches].forEach(i => i.hidden = !feet);
-      updateAll(); if (panelsCheckbox.checked) drawPanels();
-    });
+    // === EVENTS ===
+    openBtn.onclick = ()=> overlay.style.display='flex';
+    closeBtn.onclick=()=> overlay.style.display='none';
+
+    variantSelect.onchange = ()=>{ renderImage(); applyFlip(); applyBW(); };
+    unitSelect.onchange = ()=>{
+      const f = unitSelect.value==='feet';
+      [widthInput,heightInput].forEach(i=>i.hidden=f);
+      [widthFeet,widthInches,heightFeet,heightInches].forEach(i=>i.hidden=!f);
+      updateAll(); panelsCheckbox.checked&&drawPanels();
+    };
+
     [widthInput,heightInput,widthFeet,widthInches,heightFeet,heightInches]
-      .forEach(i => i.addEventListener('input', () => { updateAll(); if (panelsCheckbox.checked) drawPanels(); }));
-    flipSelect.addEventListener('change', applyFlip);
-    bwCheckbox .addEventListener('change', applyBW);
-    panelsCheckbox.addEventListener('change', () => {
-      if (panelsCheckbox.checked) drawPanels();
-      else modal.querySelectorAll('.panel-line').forEach(l => l.remove());
-    });
-    addBtn.addEventListener('click', () => {
-      if (!cropper) return;
-      cropper.getCroppedCanvas().toBlob(blob => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
+      .forEach(i=> i.oninput = ()=>{ updateAll(); panelsCheckbox.checked&&drawPanels(); });
+
+    flipSelect.onchange   = applyFlip;
+    bwCheckbox.onchange   = applyBW;
+    panelsCheckbox.onchange=()=>{
+      if(panelsCheckbox.checked) drawPanels();
+      else modal.querySelectorAll('.panel-line').forEach(l=>l.remove());
+    };
+
+    addBtn.onclick = ()=>{
+      if(!cropper) return;
+      cropper.getCroppedCanvas().toBlob(blob=>{
+        const r=new FileReader();
+        r.onloadend = ()=>{
           const props = {
             Width:  unitSelect.value==='feet'
                       ? `${widthFeet.value}ft ${widthInches.value}in`
@@ -393,38 +331,38 @@
             Height: unitSelect.value==='feet'
                       ? `${heightFeet.value}ft ${heightInches.value}in`
                       : `${heightInput.value} ${unitSelect.value}`,
-            Flip:   flipSelect.value,
-            BW:     bwCheckbox.checked ? 'Yes' : 'No',
-            Panels: panelsCheckbox.checked ? 'Yes' : 'No'
+            Flip:    flipSelect.value,
+            BW:      bwCheckbox.checked? 'Yes':'No',
+            Panels:  panelsCheckbox.checked? 'Yes':'No'
           };
-          const qty = Math.ceil((getW()*getH())/144) || 1;
-          fetch('/cart/add.js', {
-            method: 'POST',
-            headers: {'Content-Type':'application/json'},
+          const qty = Math.ceil((getW()*getH())/144)||1;
+          fetch('/cart/add.js',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
             body: JSON.stringify({
-              id: product.variants[variantSelect.value].id,
-              quantity: qty,
-              properties: props
+              id:product.variants[variantSelect.value].id,
+              quantity:qty,
+              properties:props
             })
           })
-          .then(r => r.json())
-          .then(() => window.location = '/cart')
+          .then(r=>r.json())
+          .then(()=> location='/cart')
           .catch(console.error);
         };
-        reader.readAsDataURL(blob);
+        r.readAsDataURL(blob);
       });
-    });
+    };
 
-    // Boot
+    // boot
     renderImage();
   }
 
-  // 3) Load Cropper & init on DOM ready
-  if (document.readyState !== 'loading') {
+  // DOM ready
+  if(document.readyState!=='loading'){
     loadCropper().then(initCustomizer).catch(console.error);
   } else {
-    document.addEventListener('DOMContentLoaded', () =>
-      loadCropper().then(initCustomizer).catch(console.error)
-    );
+    document.addEventListener('DOMContentLoaded',()=>{
+      loadCropper().then(initCustomizer).catch(console.error);
+    });
   }
 })();
