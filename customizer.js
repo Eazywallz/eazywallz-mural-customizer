@@ -1,27 +1,26 @@
 // public/customizer.js
-;(function() {
-  // 1) Dynamically load Cropper.js & its CSS
-  function loadCropper() {
-    return new Promise((resolve, reject) => {
-      // CSS
+;(function(){
+  // 1) Load Cropper.js + CSS
+  function loadCropper(){
+    return new Promise((res, rej)=>{
       const link = document.createElement('link');
       link.rel  = 'stylesheet';
       link.href = 'https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css';
       document.head.appendChild(link);
-      // JS
+
       const script = document.createElement('script');
       script.src     = 'https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js';
-      script.onload  = () => { console.log('Cropper.js loaded'); resolve(); };
-      script.onerror = err => reject(err);
+      script.onload  = ()=> res();
+      script.onerror = err=> rej(err);
       document.head.appendChild(script);
     });
   }
 
-  // 2) Build all controls & Cropper inside #mural-customizer
-  function initCustomizer() {
+  // 2) Build the customizer UI into the page
+  function initCustomizer(){
     const container = document.getElementById('mural-customizer');
-    if (!container) {
-      console.error('Missing #mural-customizer on page.');
+    if(!container){
+      console.error('Customizer: missing #mural-customizer');
       return;
     }
 
@@ -29,190 +28,219 @@
     let product;
     try {
       product = JSON.parse(container.dataset.product);
-    } catch (err) {
-      console.error('Invalid product JSON', err);
+    } catch(e){
+      console.error('Customizer: invalid JSON', e);
       return;
     }
-    console.log('Customizer: product loaded', product);
 
-    // Clear any old UI
+    // clear & recreate
     container.innerHTML = '';
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.height = '100%';
 
-    // --- Build control panel ---
-    const controls = document.createElement('div');
-    controls.className = 'customizer-controls';
+    // CONTROLS panel
+    const ctrls = document.createElement('div');
+    ctrls.className = 'customizer-controls';
+    ctrls.style.flex = '0 0 auto';
+    ctrls.style.overflowY = 'auto';
+    ctrls.style.padding = '20px';
+    ctrls.style.background = '#f9f9f9';
+    ctrls.style.minWidth = '300px';
 
-    // Variant selector
+    // helper to wrap label+field
+    const wrap = (labelText, field)=>{
+      const w = document.createElement('div');
+      w.style.marginBottom = '12px';
+      const lbl = document.createElement('label');
+      lbl.innerText = labelText;
+      lbl.style.display = 'block';
+      lbl.style.marginBottom = '4px';
+      w.appendChild(lbl);
+      w.appendChild(field);
+      return w;
+    };
+
+    // variant
     const variantSelect = document.createElement('select');
-    product.variants.forEach((v,i) => {
-      const opt = document.createElement('option');
-      opt.value = i; opt.text = v.title;
-      variantSelect.appendChild(opt);
+    product.variants.forEach((v,i)=>{
+      const o = document.createElement('option');
+      o.value = i; o.text = v.title;
+      variantSelect.appendChild(o);
     });
-    controls.appendChild(labelled('Variant:', variantSelect));
+    ctrls.appendChild(wrap('Variant', variantSelect));
 
-    // Unit dropdown
+    // unit
     const unitSelect = document.createElement('select');
-    ['inches','feet','cm'].forEach(u => {
+    ['inches','feet','cm'].forEach(u=>{
       const o = document.createElement('option');
       o.value = u; o.text = u;
       unitSelect.appendChild(o);
     });
-    controls.appendChild(labelled('Unit:', unitSelect));
+    ctrls.appendChild(wrap('Unit', unitSelect));
 
-    // Width & height inputs (we’ll swap ft/in dynamically)
-    const widthInput  = input('number','Width',1);
-    const heightInput = input('number','Height',1);
-    controls.appendChild(widthInput.wrapper);
-    controls.appendChild(heightInput.wrapper);
+    // width/height inputs
+    const widthInput = document.createElement('input');
+    widthInput.type = 'number'; widthInput.min = '1';
+    widthInput.placeholder = 'Width';
+    ctrls.appendChild(wrap('Width', widthInput));
 
-    // Flip & B&W toggles
+    const heightInput = document.createElement('input');
+    heightInput.type = 'number'; heightInput.min = '1';
+    heightInput.placeholder = 'Height';
+    ctrls.appendChild(wrap('Height', heightInput));
+
+    // flip
     const flipSelect = document.createElement('select');
-    ['none','horizontal','vertical'].forEach(v=> {
-      const o=document.createElement('option'); o.value=v; o.text=v;
+    ['none','horizontal','vertical'].forEach(f=>{
+      const o=document.createElement('option'); o.value=f; o.text=f;
       flipSelect.appendChild(o);
     });
-    controls.appendChild(labelled('Flip:', flipSelect));
+    ctrls.appendChild(wrap('Flip', flipSelect));
+
+    // B&W
     const bwCheckbox = document.createElement('input');
-    bwCheckbox.type='checkbox';
-    controls.appendChild(labelled('Black & White:', bwCheckbox));
+    bwCheckbox.type = 'checkbox';
+    ctrls.appendChild(wrap('Black & White', bwCheckbox));
 
-    // Show panels toggle
+    // panels
     const panelCheckbox = document.createElement('input');
-    panelCheckbox.type='checkbox';
-    controls.appendChild(labelled('Show panels:', panelCheckbox));
+    panelCheckbox.type = 'checkbox';
+    ctrls.appendChild(wrap('Show panels', panelCheckbox));
 
-    // Price display & Add to Cart
+    // price display
     const priceDisplay = document.createElement('div');
-    priceDisplay.className = 'price';
     priceDisplay.innerText = 'Price: $0.00';
+    priceDisplay.style.margin = '12px 0';
+    ctrls.appendChild(priceDisplay);
+
+    // add to cart
     const addBtn = document.createElement('button');
-    addBtn.textContent = 'Add to Cart';
     addBtn.type = 'button';
-    controls.appendChild(priceDisplay);
-    controls.appendChild(addBtn);
+    addBtn.innerText = 'Add to Cart';
+    addBtn.style.padding = '12px 20px';
+    addBtn.style.fontSize = '16px';
+    ctrls.appendChild(addBtn);
 
-    container.appendChild(controls);
-
-    // --- Canvas area ---
+    // CANVAS area
     const canvasArea = document.createElement('div');
     canvasArea.className = 'canvas-area';
+    canvasArea.style.flex = '1 1 auto';
+    canvasArea.style.position = 'relative';
+    canvasArea.style.background = '#fff';
+    canvasArea.style.display = 'flex';
+    canvasArea.style.alignItems = 'center';
+    canvasArea.style.justifyContent = 'center';
+    canvasArea.style.overflow = 'hidden';
+
+    container.appendChild(ctrls);
     container.appendChild(canvasArea);
 
-    // Shopify quantity (hidden)
+    // Shopify qty
     const qtyInput = document.querySelector('input[name="quantity"]');
-    if (qtyInput) { qtyInput.step='1'; qtyInput.min='1'; }
+    if(qtyInput){
+      qtyInput.type='hidden';
+      qtyInput.min = '1';
+      qtyInput.step= '1';
+    }
 
-    // Cropper setup
-    let cropper, imgEl;
-    let currentVariant = product.variants[0];
+    let cropper, imgEl, currentVariant = product.variants[0];
 
-    function renderImage(variant) {
-      // clear old
-      if (cropper) { cropper.destroy(); }
+    function renderImage(variant){
+      currentVariant = variant;
+      // teardown
+      if(cropper) cropper.destroy();
       canvasArea.innerHTML = '';
 
-      // pick src
-      let src = variant.image?.src||variant.featured_image?.src||product.images[0];
-      if (!src) return console.error('No image');
-      if (src.startsWith('//')) src = window.location.protocol+src;
+      // src lookup
+      let src = variant.image?.src || variant.featured_image?.src || product.images[0];
+      if(!src) return console.error('No image for variant');
+      if(src.startsWith('//')) src = window.location.protocol + src;
 
       imgEl = document.createElement('img');
       imgEl.src = src;
       imgEl.style.maxWidth = '100%';
+      imgEl.style.maxHeight= '100%';
       canvasArea.appendChild(imgEl);
 
-      imgEl.onload = () => {
+      imgEl.onload = ()=> {
         cropper = new Cropper(imgEl, {
-          viewMode:        1,
-          dragMode:        'move',
-          scalable:        false,
-          zoomable:        false,
-          cropBoxMovable:  false,
-          cropBoxResizable:false,
+          viewMode: 1,
+          dragMode: 'move',
+          scalable: false,
+          zoomable: false,
+          cropBoxMovable: false,
+          cropBoxResizable: false
         });
-        // fix crop box to full
-        cropper.ready(() => {
-          const mw = cropper.getContainerData();
-          cropper.setCropBoxData({ left:0, top:0, width:mw.width, height:mw.height });
-        });
+        // fix crop box to full container
+        const cd = cropper.getContainerData();
+        cropper.setCropBoxData({ left:0, top:0, width:cd.width, height:cd.height });
+
         recalc();
       };
     }
 
-    // recalc dimensions, price, panels
-    function recalc() {
-      if (!cropper) return;
-      let w = parseFloat(widthInput.el.value)||0;
-      let h = parseFloat(heightInput.el.value)||0;
-      if (!w||!h) return;
-      // unit conversion
+    function recalc(){
+      if(!cropper) return;
+      const w = parseFloat(widthInput.value)||0;
+      const h = parseFloat(heightInput.value)||0;
+      if(!w||!h) return;
+      // convert to inches
       const unit = unitSelect.value;
       const factor = unit==='cm'? (1/2.54) : unit==='feet'? 12 : 1;
-      const wIn = w * factor;
-      const hIn = h * factor;
+      const wIn = w*factor, hIn = h*factor;
       // aspect
       cropper.setAspectRatio(wIn/hIn);
       // price
-      const ft2     = (wIn*hIn)/144;
-      const up      = currentVariant.price / 100;
-      const total   = Math.ceil(ft2) * up;
-      priceDisplay.innerText = `Price: $${total.toFixed(2)}`;
-      if (qtyInput) qtyInput.value = Math.ceil(ft2);
-      // panels
-      if (panelCheckbox.checked) drawPanels();
-      else clearPanels();
+      const ft2 = (wIn*hIn)/144;
+      const price = Math.ceil(ft2)*(currentVariant.price/100);
+      priceDisplay.innerText = `Price: $${price.toFixed(2)}`;
+      if(qtyInput) qtyInput.value = Math.ceil(ft2);
+
+      panelCheckbox.checked ? drawPanels() : clearPanels();
     }
 
-    // flip & B&W
-    function applyFlip() {
-      if (!cropper) return;
+    function applyFlip(){
+      if(!cropper) return;
       const v = flipSelect.value;
       cropper.scaleX(v==='horizontal'?-1:1);
       cropper.scaleY(v==='vertical'  ?-1:1);
     }
-    function applyBW() {
-      if (imgEl) imgEl.style.filter = bwCheckbox.checked?'grayscale(100%)':'none';
+    function applyBW(){
+      if(imgEl) imgEl.style.filter = bwCheckbox.checked ? 'grayscale(100%)' : 'none';
     }
 
-    // panel lines
-    function clearPanels() {
-      Array.from(canvasArea.querySelectorAll('.panel-line'))
-           .forEach(el=>el.remove());
+    function clearPanels(){
+      canvasArea.querySelectorAll('.panel-line').forEach(el=>el.remove());
     }
-    function drawPanels() {
+    function drawPanels(){
       clearPanels();
-      const box = canvasArea.querySelector('.cropper-crop-box');
-      if (!box) return;
-      const data = cropper.getCropBoxData();
-      const totalIn = parseFloat(widthInput.el.value) * (unitSelect.value==='cm'?1/2.54:unitSelect.value==='feet'?12:1);
-      const panelCount = Math.ceil(totalIn/25);
-      const panelW     = data.width / panelCount;
-      for (let i=1; i<panelCount; i++) {
+      const cd = cropper.getCropBoxData();
+      const totalIn = (parseFloat(widthInput.value)||0)*(unitSelect.value==='cm'?1/2.54:unitSelect.value==='feet'?12:1);
+      const count   = Math.ceil(totalIn/25);
+      const stepPx  = cd.width/count;
+      for(let i=1;i<count;i++){
         const line = document.createElement('div');
         line.className = 'panel-line';
         Object.assign(line.style,{
-          position:'absolute',
-          top:0, bottom:0,
-          left:`${data.left + panelW*i}px`,
-          width:'2px',
-          background:'rgba(0,0,0,0.5)',
-          pointerEvents:'none'
+          position:'absolute', top:`${cd.top}px`,
+          left:`${cd.left+stepPx*i}px`,
+          height:`${cd.height}px`, width:'2px',
+          background:'rgba(0,0,0,0.5)', pointerEvents:'none'
         });
         canvasArea.appendChild(line);
       }
     }
 
-    // Add to cart
-    function onAddToCart() {
-      if (!cropper) return;
-      cropper.getCroppedCanvas().toBlob(blob => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const imgURL = reader.result;
+    function onAdd(){
+      if(!cropper) return;
+      cropper.getCroppedCanvas().toBlob(blob=>{
+        const r = new FileReader();
+        r.onload = ()=>{
+          const imgURL = r.result;
           const props = {
-            Width: `${widthInput.el.value} ${unitSelect.value}`,
-            Height:`${heightInput.el.value} ${unitSelect.value}`,
+            Width:`${widthInput.value} ${unitSelect.value}`,
+            Height:`${heightInput.value} ${unitSelect.value}`,
             Flip: flipSelect.value,
             'Black & White': bwCheckbox.checked?'Yes':'No',
             Panels: panelCheckbox.checked?'Yes':'No',
@@ -223,90 +251,62 @@
             quantity: parseInt(qtyInput.value)||1,
             properties: props
           };
-          fetch('/cart/add.js', {
+          fetch('/cart/add.js',{
             method:'POST',
-            headers:{ 'Content-Type':'application/json' },
+            headers:{'Content-Type':'application/json'},
             body: JSON.stringify(payload)
           })
-          .then(r=>r.json())
           .then(()=> window.location.href='/cart')
-          .catch(e=> console.error('Add to cart failed', e));
+          .catch(e=> console.error('Cart add error',e));
         };
-        reader.readAsDataURL(blob);
+        r.readAsDataURL(blob);
       });
     }
 
-    // wire events
-    variantSelect.addEventListener('change', _=> {
-      currentVariant = product.variants[variantSelect.value];
-      renderImage(currentVariant);
-    });
-    [unitSelect,widthInput.el,heightInput.el].forEach(el=>
+    // wire
+    variantSelect.addEventListener('change', e=> renderImage(product.variants[e.target.value]));
+    [unitSelect, widthInput, heightInput].forEach(el=>
       el.addEventListener('input', recalc)
     );
-    flipSelect  .addEventListener('change',()=>{ applyFlip(); });
+    flipSelect  .addEventListener('change', applyFlip);
     bwCheckbox  .addEventListener('change', applyBW);
-    panelCheckbox.addEventListener('change', ()=> {
-      panelCheckbox.checked? drawPanels():clearPanels();
-    });
-    addBtn.addEventListener('click', onAddToCart);
+    panelCheckbox.addEventListener('change', ()=>panelCheckbox.checked?drawPanels():clearPanels());
+    addBtn.addEventListener('click', onAdd);
 
-    // initial render
+    // initial
     renderImage(currentVariant);
-
-    // helper to wrap label+el
-    function labelled(txt,el) {
-      const w = document.createElement('div');
-      w.style.marginBottom = '10px';
-      const lbl = document.createElement('label');
-      lbl.innerText = txt;
-      lbl.style.display = 'block';
-      lbl.style.marginBottom = '4px';
-      w.appendChild(lbl);
-      w.appendChild(el);
-      return w;
-    }
-    // helper to make input with wrapper
-    function input(type, placeholder, min=0) {
-      const el  = document.createElement('input');
-      el.type   = type;
-      el.min    = min; 
-      el.placeholder = placeholder;
-      el.style.width = '100%';
-      const wrapper = labelled(placeholder, el);
-      return { el, wrapper };
-    }
   }
 
-  // 3) Move #mural-customizer into overlay and bind open/close
-  function setupModal() {
+  // 3) Modal wiring
+  function setupModal(){
     const overlay   = document.getElementById('customizer-overlay');
     const openBtn   = document.getElementById('open-customizer-btn');
     const closeBtn  = document.getElementById('close-customizer-btn');
     const container = document.getElementById('mural-customizer');
-    const modalContent = overlay.querySelector('.modal-content');
+    const modalArea = (overlay && overlay.querySelector('.modal-content')) || overlay;
 
-    [overlay,openBtn,closeBtn,container,modalContent].forEach(el=>{
-      if (!el) console.warn('Missing element for customizer modal:', el);
-    });
+    if(!overlay||!openBtn||!closeBtn||!modalArea||!container){
+      console.warn('Customizer modal elements missing');
+      return;
+    }
 
     openBtn.addEventListener('click', e=>{
       e.preventDefault();
-      if (container.parentNode !== modalContent) {
-        modalContent.appendChild(container);
+      if(container.parentNode!==modalArea){
+        modalArea.appendChild(container);
       }
       overlay.style.display = 'flex';
     });
-    closeBtn.addEventListener('click', ()=> overlay.style.display = 'none');
+    closeBtn.addEventListener('click', ()=> overlay.style.display='none');
   }
 
-  // boot
-  document.addEventListener('DOMContentLoaded', ()=> {
+  // 4) Bootstrap
+  document.addEventListener('DOMContentLoaded', ()=>{
     loadCropper()
       .then(()=>{
         initCustomizer();
         setupModal();
       })
-      .catch(err=> console.error('Customizer init error', err));
+      .catch(err=> console.error('Customizer failed',err));
   });
 })();
