@@ -19,248 +19,143 @@
     const container = document.getElementById('mural-customizer');
     if (!container) return;
 
+    // parse product
     let product;
-    try {
-      product = JSON.parse(container.dataset.product);
-    } catch {
-      console.error('Invalid product JSON');
-      return;
-    }
+    try { product = JSON.parse(container.dataset.product); }
+    catch (e) { console.error('Invalid product JSON'); return; }
 
-    // --- Create or persist open button ---
+    // open button
     let openBtn = document.getElementById('customizer-open-btn');
     if (!openBtn) {
       openBtn = document.createElement('button');
       openBtn.id = 'customizer-open-btn';
-      openBtn.type = 'button';
-      openBtn.innerText = 'Customize Mural';
-      Object.assign(openBtn.style, {
-        margin: '1rem 0', padding: '0.5rem 1rem',
-        background: '#007bff', color: '#fff', border: 'none', cursor: 'pointer'
-      });
-      container.insertBefore(openBtn, container.firstChild);
+      openBtn.textContent = 'Customize Mural';
+      openBtn.style.cssText = 'margin:1rem 0;padding:.5rem 1rem;background:#111;color:#fff;border:none;cursor:pointer;';
+      container.prepend(openBtn);
     }
 
-    // --- Overlay and modal container ---
+    // overlay
     let overlay = document.getElementById('customizer-overlay');
     if (!overlay) {
       overlay = document.createElement('div'); overlay.id = 'customizer-overlay';
-      Object.assign(overlay.style, {
-        position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-        background: 'rgba(0,0,0,0.5)', display: 'none', alignItems: 'center',
-        justifyContent: 'center', zIndex: 10000
-      });
+      overlay.style.cssText = '
+        position:fixed;top:0;left:0;right:0;bottom:0;
+        background:rgba(0,0,0,0.5);
+        display:none;align-items:center;justify-content:center;
+        z-index:10000;'
       document.body.appendChild(overlay);
     }
 
+    // modal
     let modal = document.getElementById('customizer-modal');
     if (!modal) {
       modal = document.createElement('div'); modal.id = 'customizer-modal';
-      Object.assign(modal.style, {
-        background: '#fff', borderRadius: '8px',
-        width: '75vw', height: '75vh', maxWidth: '1200px', maxHeight: '900px',
-        display: 'flex', flexDirection: 'column', position: 'relative'
-      });
+      modal.style.cssText = '
+        background:#fff;border-radius:8px;
+        width:75vw;max-width:1200px;max-height:85vh;
+        display:flex;overflow:hidden;position:relative;'
       overlay.appendChild(modal);
     }
 
-    // Close button
+    // close icon
     let closeBtn = document.getElementById('customizer-close-btn');
     if (!closeBtn) {
       closeBtn = document.createElement('button'); closeBtn.id = 'customizer-close-btn';
-      closeBtn.type = 'button'; closeBtn.innerText = '✕';
-      Object.assign(closeBtn.style, {
-        position: 'absolute', top: '10px', right: '10px',
-        fontSize: '1.5rem', background: 'transparent', border: 'none', cursor: 'pointer'
-      });
-      closeBtn.addEventListener('click', () => overlay.style.display = 'none');
+      closeBtn.innerHTML = '&times;';
+      closeBtn.style.cssText = 'position:absolute;top:10px;right:10px;font-size:1.5rem;background:none;border:none;cursor:pointer;';
+      closeBtn.onclick = () => overlay.style.display = 'none';
       modal.appendChild(closeBtn);
     }
 
-    // Controls bar
-    let controls = document.getElementById('customizer-controls');
-    if (!controls) {
-      controls = document.createElement('div'); controls.id = 'customizer-controls';
-      Object.assign(controls.style, {
-        padding: '1rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem',
-        borderBottom: '1px solid #ddd'
-      });
-      modal.appendChild(controls);
+    // left sidebar
+    let sidebar = document.getElementById('customizer-sidebar');
+    if (!sidebar) {
+      sidebar = document.createElement('div'); sidebar.id = 'customizer-sidebar';
+      sidebar.style.cssText = '
+        width:300px;padding:1rem;
+        background:#f9f9f9;overflow-y:auto;
+        border-right:1px solid #ddd;';
+      modal.appendChild(sidebar);
     }
 
-    // Canvas area
+    // right canvas
     let canvasArea = document.getElementById('customizer-canvas');
     if (!canvasArea) {
       canvasArea = document.createElement('div'); canvasArea.id = 'customizer-canvas';
-      Object.assign(canvasArea.style, {
-        flex: '1', position: 'relative', overflow: 'hidden',
-        display: 'flex', alignItems: 'center', justifyContent: 'center'
-      });
+      canvasArea.style.cssText = '
+        flex:1;position:relative;
+        display:flex;align-items:center;justify-content:center;
+        background:#eaeaea;';
       modal.appendChild(canvasArea);
     }
 
-    // Footer
+    // footer
     let footer = document.getElementById('customizer-footer');
     if (!footer) {
       footer = document.createElement('div'); footer.id = 'customizer-footer';
-      Object.assign(footer.style, {
-        padding: '1rem', borderTop: '1px solid #ddd',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-      });
+      footer.style.cssText = '
+        padding:1rem;border-top:1px solid #ddd;
+        display:flex;justify-content:space-between;';
       modal.appendChild(footer);
     }
 
-    // --- UI elements ---
-    // Units
-    const unitSelect = document.createElement('select');
-    unitSelect.id = 'unit-select';
-    [['inches','Inches'],['feet','Feet'],['cm','Centimeters']].forEach(([v,t])=>{
-      const o=document.createElement('option');o.value=v;o.text=t;unitSelect.append(o);
-    }); controls.append(unitSelect);
+    // build controls in sidebar
+    sidebar.innerHTML = '';
+    function makeLabel(text) { const l = document.createElement('label'); l.textContent = text; l.style.fontWeight='bold';return l; }
+    sidebar.append(makeLabel('Wall dimensions'), document.createElement('br'));
+    const unitSel = document.createElement('select'); ['inches','feet','cm'].forEach(u=>unitSel.add(new Option(u,u))); unitSel.style.width='100%';
+    sidebar.append(unitSel);
+    sidebar.append(document.createElement('br'));
+    const wIn = Object.assign(document.createElement('input'),{type:'number',placeholder:'Width',style:'width:100%;margin:.5rem 0;'});
+    const hIn = Object.assign(document.createElement('input'),{type:'number',placeholder:'Height',style:'width:100%;margin:.5rem 0;'});
+    sidebar.append(wIn, hIn);
+    sidebar.append(makeLabel('Paper type'), document.createElement('div'));
+    const variantSel = document.createElement('select'); product.variants.forEach((v,i)=>variantSel.add(new Option(v.title,i))); variantSel.style.width='100%';
+    sidebar.append(variantSel);
+    sidebar.append(makeLabel('Options'), document.createElement('div'));
+    const flipSel = document.createElement('select'); ['none','h','v'].forEach(f=>flipSel.add(new Option('Flip '+f,f))); flipSel.style.marginRight='1rem';
+    const bwChk = Object.assign(document.createElement('input'),{type:'checkbox'});
+    sidebar.append(flipSel, bwChk, document.createTextNode('Black & White'));
+    sidebar.append(document.createElement('hr'));
+    const panelsChk = Object.assign(document.createElement('input'),{type:'checkbox'});
+    sidebar.append(panelsChk, document.createTextNode('Show panels'));
 
-    // Variant
-    const variantSelect = document.createElement('select'); variantSelect.id='variant-select';
-    product.variants.forEach((v,i)=>{const o=document.createElement('option');o.value=i;o.text=v.title;variantSelect.append(o);});
-    controls.append(variantSelect);
-
-    // Width/Height inputs
-    const widthInput  = Object.assign(document.createElement('input'),{id:'width-input',type:'number',placeholder:'Width',min:1});
-    const heightInput = Object.assign(document.createElement('input'),{id:'height-input',type:'number',placeholder:'Height',min:1});
-    controls.append(widthInput,heightInput);
-
-    // Feet/inches split
-    const widthFeet   = Object.assign(document.createElement('input'),{id:'width-feet',type:'number',placeholder:'Feet',min:0,maxLength:3,hidden:true});
-    const widthInches = Object.assign(document.createElement('input'),{id:'width-inches',type:'number',placeholder:'Inches',min:0,max:11,maxLength:2,hidden:true});
-    const heightFeet  = Object.assign(document.createElement('input'),{id:'height-feet',type:'number',placeholder:'Feet',min:0,maxLength:3,hidden:true});
-    const heightInches= Object.assign(document.createElement('input'),{id:'height-inches',type:'number',placeholder:'Inches',min:0,max:11,maxLength:2,hidden:true});
-    controls.append(widthFeet,widthInches,heightFeet,heightInches);
-
-    // Flip
-    const flipSelect = document.createElement('select'); flipSelect.id='flip-select';
-    [['none','None'],['horizontal','Flip H'],['vertical','Flip V']].forEach(([v,t])=>{
-      const o=document.createElement('option');o.value=v;o.text=t;flipSelect.append(o);
-    }); controls.append(flipSelect);
-
-    // Black & white
-    const bwCheckbox = Object.assign(document.createElement('input'),{id:'bw-checkbox',type:'checkbox'});
-    const bwLabel = document.createTextNode(' B&W ');
-    controls.append(bwCheckbox,bwLabel);
-
-    // Panels
-    const panelsCheckbox = Object.assign(document.createElement('input'),{id:'panels-checkbox',type:'checkbox'});
-    const panelsLabel = document.createTextNode(' Show panels ');
-    controls.append(panelsCheckbox,panelsLabel);
-
-    // Price display & add button
-    const priceDiv = document.createElement('div'); priceDiv.id='price-display'; priceDiv.innerText='Price: $0.00';
-    const addBtn   = document.createElement('button'); addBtn.id='add-btn'; addBtn.type='button'; addBtn.innerText='Add to Cart';
-    Object.assign(addBtn.style,{padding:'0.5rem 1rem',background:'#007bff',color:'#fff',border:'none',borderRadius:'4px',cursor:'pointer'});
+    // price and add
+    footer.innerHTML = '';
+    const priceDiv = document.createElement('div'); priceDiv.textContent = 'Price: $0.00';
+    const addBtn = document.createElement('button'); addBtn.textContent='Add to Cart';
+    addBtn.style.cssText='padding:.5rem 1rem;background:#111;color:#fff;border:none;cursor:pointer;';
     footer.append(priceDiv, addBtn);
 
-    // Quantity field
-    const qtyInput = document.querySelector('input[name="quantity"]');
-    if(qtyInput){qtyInput.step='1';qtyInput.min='1';}
-
-    // --- Cropper and logic ---
-    let cropper, imgEl;
-    function clearCanvas(){ if(cropper) cropper.destroy(); canvasArea.innerHTML = ''; }
-    function canvasAppend(node){ canvasArea.appendChild(node); }
-
-    function renderImage(){
-      clearCanvas();
-      let src = product.variants[variantSelect.value].image?.src
-             || product.variants[variantSelect.value].featured_image?.src
-             || product.images[0];
-      if(src.startsWith('//')) src = window.location.protocol + src;
-      imgEl = document.createElement('img'); imgEl.src = src;
-      Object.assign(imgEl.style,{minWidth:'100%',minHeight:'100%',display:'block'});
-      imgEl.onload = () => {
-        canvasAppend(imgEl);
-        cropper = new Cropper(imgEl, {
-          viewMode:1,autoCropArea:1,dragMode:'move',
-          cropBoxMovable:false,cropBoxResizable:false,
-          zoomable:false,scalable:false,responsive:true,
-          ready(){
-            const cd = cropper.getContainerData();
-            cropper.setCropBoxData({left:cd.left,top:cd.top,width:cd.width,height:cd.height});
-          }
-        });
-        ['cropmove','cropend'].forEach(evt=>cropper.on(evt,()=>{ if(panelsCheckbox.checked) drawPanels(); }));
-        updateAll(); if(panelsCheckbox.checked) drawPanels();
+    // logic
+    let cropper,img;
+    function clear() { if(cropper)cropper.destroy(); canvasArea.innerHTML=''; }
+    function render() {
+      clear(); let src=product.variants[variantSel.value].image?.src||product.images[0];
+      if(src.startsWith('//'))src=location.protocol+src;
+      img=document.createElement('img'); img.src=src; img.style.maxWidth='100%'; img.style.maxHeight='100%';
+      img.onload=()=>{
+        canvasArea.append(img);
+        cropper=new Cropper(img,{viewMode:1,autoCropArea:1,dragMode:'move',cropBoxMovable:false,cropBoxResizable:false,zoomable:false,scalable:false});
+        if(panelsChk.checked)drawPanels();
       };
     }
-
-    function toInches(v){ return unitSelect.value==='cm'?v*0.393700787:v; }
-    function getW(){ return unitSelect.value==='feet'?((+widthFeet.value||0)*12 + (+widthInches.value||0)) : toInches(+widthInput.value||0); }
-    function getH(){ return unitSelect.value==='feet'?((+heightFeet.value||0)*12 + (+heightInches.value||0)) : toInches(+heightInput.value||0); }
-    function updateAll(){
-      const w=getW(), h=getH(); if(cropper && w>0 && h>0){
-        cropper.setAspectRatio(w/h);
-        const sqft=Math.ceil((w*h)/144)||1;
-        const priceCents=+product.variants[variantSelect.value].price;
-        priceDiv.innerText = `Price: $${((priceCents/100)*sqft).toFixed(2)}`;
-        if(qtyInput) qtyInput.value=sqft;
-      }
-    }
-    function applyFlip(){
-      const wrapper = canvasArea.querySelector('.cropper-canvas');
-      if(wrapper){ wrapper.style.transform = flipSelect.value==='horizontal'? 'scaleX(-1)' : flipSelect.value==='vertical'?'scaleY(-1)':''; }
-    }
-    function applyBW(){
-      const wrapper = canvasArea.querySelector('.cropper-canvas');
-      if(wrapper){ wrapper.style.filter = bwCheckbox.checked?'grayscale(100%)':''; }
-    }
     function drawPanels(){
-      const wrapper = canvasArea.querySelector('.cropper-canvas');
-      if(!cropper||!wrapper) return;
-      wrapper.parentNode.querySelectorAll('.panel-line').forEach(l=>l.remove());
-      const cb = cropper.getCropBoxData();
-      const total=getW(), maxW=25, count=Math.ceil(total/maxW), step=cb.width/count;
-      for(let i=1;i<count;i++){
-        const x=cb.left+step*i;
-        const line=document.createElement('div'); line.className='panel-line';
-        Object.assign(line.style,{position:'absolute',top:`${cb.top}px`,left:`${x}px`,height:`${cb.height}px`,width:'2px',background:'rgba(255,0,0,0.7)',pointerEvents:'none'});
-        modal.querySelector('.cropper-container').appendChild(line);
-      }
+      canvasArea.querySelectorAll('.panel').forEach(n=>n.remove());
+      const cb=cropper.getCropBoxData(),total=+wIn.value, count=Math.ceil(total/25),step=cb.width/count;
+      for(let i=1;i<count;i++){const d=document.createElement('div');d.className='panel';d.style.cssText=`position:absolute;top:${cb.top}px;left:${cb.left+step*i}px;height:${cb.height}px;width:2px;background:red;pointer-events:none;`;canvasArea.append(d);}    }
+    function update(){
+      if(!cropper) return; const w=+wIn.value,h=+hIn.value;if(w&&h)cropper.setAspectRatio(w/h);
+      const sqft=Math.ceil((w*h)/144)||1;
+      const price=(product.variants[variantSel.value].price/100)*sqft;
+      priceDiv.textContent=`Price: $${price.toFixed(2)}`;
     }
+    [wIn,hIn,variantSel].forEach(el=>el.oninput=()=>{render();update();});
+    panelsChk.onchange=()=>{ if(panelsChk.checked)drawPanels(); else canvasArea.querySelectorAll('.panel').forEach(n=>n.remove()); };
+    openBtn.onclick=()=>overlay.style.display='flex';
+    addBtn.onclick=()=>alert('To cart'); // stub
 
-    // --- Event bindings ---
-    openBtn.addEventListener('click',()=>overlay.style.display='flex');
-    variantSelect.addEventListener('change',()=>{ renderImage(); applyFlip(); applyBW(); });
-    unitSelect.addEventListener('change',()=>{
-      const feet = unitSelect.value==='feet';
-      widthInput.hidden = heightInput.hidden = !feet;
-      [widthFeet,widthInches,heightFeet,heightInches].forEach(i=>i.hidden=!feet);
-      updateAll(); if(panelsCheckbox.checked) drawPanels();
-    });
-    [widthInput,heightInput,widthFeet,widthInches,heightFeet,heightInches].forEach(i=>i.addEventListener('input',()=>{ updateAll(); if(panelsCheckbox.checked) drawPanels(); }));
-    flipSelect.addEventListener('change',applyFlip);
-    bwCheckbox.addEventListener('change',applyBW);
-    panelsCheckbox.addEventListener('change',()=>{
-      if(panelsCheckbox.checked) drawPanels(); else modal.querySelectorAll('.panel-line').forEach(l=>l.remove());
-    });
-    addBtn.addEventListener('click',()=>{
-      if(!cropper) return;
-      cropper.getCroppedCanvas().toBlob(blob=>{
-        const reader = new FileReader();
-        reader.onloadend = ()=>{
-          const props={
-            Width: unitSelect.value==='feet'?`${widthFeet.value}ft ${widthInches.value}in`:`${widthInput.value} ${unitSelect.value}`,
-            Height: unitSelect.value==='feet'?`${heightFeet.value}ft ${heightInches.value}in`:`${heightInput.value} ${unitSelect.value}`,
-            Flip: flipSelect.value,
-            BW: bwCheckbox.checked?'Yes':'No',
-            Panels: panelsCheckbox.checked?'Yes':'No'
-          };
-          const qty=Math.ceil((getW()*getH())/144)||1;
-          fetch('/cart/add.js',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:product.variants[variantSelect.value].id,quantity:qty,properties:props})})
-            .then(r=>r.json()).then(()=>window.location='/cart').catch(console.error);
-        };
-        reader.readAsDataURL(blob);
-      });
-    });
-
-    // Boot
-    renderImage(); updateAll();
+    render(); update();
   }
 
   document.readyState!=='loading'
