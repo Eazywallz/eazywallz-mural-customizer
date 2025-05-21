@@ -23,6 +23,12 @@
     try { product = JSON.parse(container.dataset.product); }
     catch { console.error('Invalid product JSON'); return; }
 
+    // Add "Open Customizer" button
+    const openBtn = document.createElement('button');
+    openBtn.innerText = 'Customize Mural';
+    Object.assign(openBtn.style, { margin: '1rem 0', padding: '0.5rem 1rem', background: '#007bff', color: '#fff', border: 'none', cursor: 'pointer' });
+    container.appendChild(openBtn);
+
     // Modal overlay
     const overlay = document.createElement('div');
     Object.assign(overlay.style, {
@@ -119,15 +125,14 @@
       if (src.startsWith('//')) src = location.protocol + src;
       imgEl = document.createElement('img'); imgEl.src = src;
       imgEl.onload = () => {
+        canvasArea.appendChild(imgEl);
         cropper = new Cropper(imgEl, {
           viewMode: 1, autoCropArea: 1,
           dragMode: 'move', cropBoxMovable: true, cropBoxResizable: false,
           zoomable: false, scalable: false
         });
-        canvasArea.appendChild(cropper.cropper);
         updateAll(); if (panelsCheckbox.checked) drawPanels();
       };
-      canvasArea.appendChild(imgEl);
     }
 
     function toInches(v) { return unitSelect.value === 'cm' ? v * 0.393700787 : v; }
@@ -147,7 +152,6 @@
       if (cropper && w > 0 && h > 0) {
         cropper.setAspectRatio(w / h);
         const sqft = Math.ceil((w * h) / 144) || 1;
-        // Price correction: /100 to convert cents to dollars
         const rawPriceCents = parseFloat(product.variants[variantSelect.value].price);
         const unitPrice = rawPriceCents / 100;
         priceDiv.innerText = `Price: $${(unitPrice * sqft).toFixed(2)}`;
@@ -171,7 +175,7 @@
       wrap.style.position = 'relative';
       const data = cropper.getCropBoxData();
       const total = getWidthInches();
-      const maxW = 25; // inches or approx
+      const maxW = 25;
       const count = Math.ceil(total / maxW);
       const step = data.width / count;
       for (let i = 1; i < count; i++) {
@@ -187,6 +191,7 @@
     }
 
     // Events
+    openBtn.addEventListener('click', () => overlay.style.display = 'flex');
     variantSelect.addEventListener('change', () => { renderImage(); applyFlip(); applyBW(); });
     unitSelect.addEventListener('change', () => {
       const feet = unitSelect.value === 'feet';
@@ -229,7 +234,7 @@
       });
     });
 
-    // Initial render (modal remains hidden)
+    // Initial render
     renderImage(); updateAll();
   }
 
