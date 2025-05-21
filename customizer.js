@@ -90,7 +90,8 @@
         maxHeight: '900px',
         display: 'flex',
         flexDirection: 'column',
-        position: 'relative'
+        position: 'relative',
+        overflow: 'hidden'
       });
       overlay.appendChild(modal);
     }
@@ -136,7 +137,9 @@
       canvasArea = document.createElement('div');
       canvasArea.id = 'customizer-canvas';
       Object.assign(canvasArea.style, {
-        flex: '1',
+        flex: '1 1 auto',
+        width: '100%',
+        height: '100%',
         position: 'relative',
         overflow: 'hidden',
         display: 'flex',
@@ -199,7 +202,7 @@
 
     // Flip
     const flipSelect = document.createElement('select');
-    flipSelect.id='flip-select';
+    flipSelect.id = 'flip-select';
     [['none','None'],['horizontal','Flip H'],['vertical','Flip V']]
       .forEach(([v,t]) => {
         const o = document.createElement('option');
@@ -243,6 +246,7 @@
 
     // --- Cropper and logic ---
     let cropper, imgEl;
+
     function clearCanvas() {
       if (cropper) cropper.destroy();
       canvasArea.innerHTML = '';
@@ -257,33 +261,44 @@
 
       imgEl = document.createElement('img');
       imgEl.src = src;
-      Object.assign(imgEl.style, {minWidth:'100%', minHeight:'100%', display:'block'});
+      // Make the image fill the canvas area responsively
+      Object.assign(imgEl.style, {
+        width: '100%',
+        height: '100%',
+        objectFit: 'contain',
+        display: 'block'
+      });
 
       imgEl.onload = () => {
-        canvasArea.append(imgEl);
+        canvasArea.appendChild(imgEl);
 
         cropper = new Cropper(imgEl, {
-          viewMode:         1,
-          autoCropArea:     1,
-          dragMode:         'move',
-          cropBoxMovable:   false,
-          cropBoxResizable: false,
-          zoomable:         false,
-          scalable:         false,
-          responsive:       true,
-          // redraw panels on crop move/end
-          cropmove: () => { if (panelsCheckbox.checked) drawPanels(); },
-          cropend:  () => { if (panelsCheckbox.checked) drawPanels(); },
+          viewMode:1,
+          autoCropArea:1,
+          dragMode:'move',
+          cropBoxMovable:false,
+          cropBoxResizable:false,
+          zoomable:false,
+          scalable:false,
+          responsive:true,
           ready() {
+            // stretch cropper canvas to full container
+            const cd = cropper.getContainerData();
+            cropper.setCanvasData({ left:0, top:0, width:cd.width, height:cd.height });
             updateAll();
             if (panelsCheckbox.checked) drawPanels();
           }
         });
+
+        // redraw panels on move/end
+        ['cropmove','cropend'].forEach(evt =>
+          cropper.on(evt, () => { if (panelsCheckbox.checked) drawPanels(); })
+        );
       };
     }
 
     function toInches(v) {
-      return unitSelect.value==='cm'? v * 0.393700787 : v;
+      return unitSelect.value==='cm' ? v * 0.393700787 : v;
     }
     function getW() {
       return unitSelect.value==='feet'
@@ -310,11 +325,9 @@
     function applyFlip(){
       const wrapper = canvasArea.querySelector('.cropper-canvas');
       if (wrapper) {
-        wrapper.style.transform = flipSelect.value==='horizontal'
-          ? 'scaleX(-1)'
-          : flipSelect.value==='vertical'
-            ? 'scaleY(-1)'
-            : '';
+        wrapper.style.transform =
+          flipSelect.value==='horizontal' ? 'scaleX(-1)' :
+          flipSelect.value==='vertical'   ? 'scaleY(-1)' : '';
       }
     }
 
@@ -327,13 +340,13 @@
 
     function drawPanels(){
       if (!cropper) return;
-      // remove old
+      // remove old lines
       modal.querySelectorAll('.panel-line').forEach(l => l.remove());
       const cb    = cropper.getCropBoxData();
       const total = getW();
-      const maxW  = 25;
+      const maxW  = 25; // in inches
       const count = Math.ceil(total/maxW);
-      const step  = cb.width / count;
+      const step  = cb.width/count;
       for (let i=1; i<count; i++) {
         const x = cb.left + step*i;
         const line = document.createElement('div');
@@ -353,31 +366,21 @@
 
     // --- Event bindings ---
     openBtn.addEventListener('click', () => overlay.style.display = 'flex');
-    variantSelect.addEventListener('change', () => {
-      renderImage();
-      applyFlip();
-      applyBW();
-    });
+    variantSelect.addEventListener('change', () => { renderImage(); applyFlip(); applyBW(); });
     unitSelect.addEventListener('change', () => {
       const feet = unitSelect.value==='feet';
-      widthInput.hidden = heightInput.hidden = feet;
+      widthInput.hidden = heightInput.hidden = !feet;
       [widthFeet,widthInches,heightFeet,heightInches].forEach(i => i.hidden = !feet);
-      updateAll(); 
-      if (panelsCheckbox.checked) drawPanels();
+      updateAll(); if (panelsCheckbox.checked) drawPanels();
     });
     [widthInput,heightInput,widthFeet,widthInches,heightFeet,heightInches]
-      .forEach(i => i.addEventListener('input', () => {
-        updateAll();
-        if (panelsCheckbox.checked) drawPanels();
-      }));
-
+      .forEach(i => i.addEventListener('input', () => { updateAll(); if (panelsCheckbox.checked) drawPanels(); }));
     flipSelect.addEventListener('change', applyFlip);
     bwCheckbox .addEventListener('change', applyBW);
     panelsCheckbox.addEventListener('change', () => {
       if (panelsCheckbox.checked) drawPanels();
       else modal.querySelectorAll('.panel-line').forEach(l => l.remove());
     });
-
     addBtn.addEventListener('click', () => {
       if (!cropper) return;
       cropper.getCroppedCanvas().toBlob(blob => {
@@ -390,10 +393,9 @@
             Height: unitSelect.value==='feet'
                       ? `${heightFeet.value}ft ${heightInches.value}in`
                       : `${heightInput.value} ${unitSelect.value}`,
-            Flip:  flipSelect.value,
-            BW:    bwCheckbox.checked ? 'Yes' : 'No',
-            Panels: panelsCheckbox.checked ? 'Yes' : 'No',
-            // you could also pass reader.result here if you want the dataURL
+            Flip:   flipSelect.value,
+            BW:     bwCheckbox.checked ? 'Yes' : 'No',
+            Panels: panelsCheckbox.checked ? 'Yes' : 'No'
           };
           const qty = Math.ceil((getW()*getH())/144) || 1;
           fetch('/cart/add.js', {
@@ -419,10 +421,10 @@
 
   // 3) Load Cropper & init on DOM ready
   if (document.readyState !== 'loading') {
-    loadCropper().then(initCustomizer).catch(err => console.error(err));
+    loadCropper().then(initCustomizer).catch(console.error);
   } else {
     document.addEventListener('DOMContentLoaded', () =>
-      loadCropper().then(initCustomizer).catch(err => console.error(err))
+      loadCropper().then(initCustomizer).catch(console.error)
     );
   }
 })();
