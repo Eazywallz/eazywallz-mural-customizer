@@ -28,16 +28,29 @@
     const overlay = document.createElement('div');
     overlay.id = 'customizer-modal';
     Object.assign(overlay.style, {
-      position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-      background: 'rgba(0,0,0,0.5)', display: 'none', alignItems: 'center', justifyContent: 'center', zIndex: 10000
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      background: 'rgba(0,0,0,0.5)',
+      display: 'none',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 10000
     });
     document.body.appendChild(overlay);
 
     // Modal content
     const modalContent = document.createElement('div');
     Object.assign(modalContent.style, {
-      position: 'relative', background: '#fff', padding: '1rem', borderRadius: '8px',
-      maxWidth: '90%', maxHeight: '90%', overflowY: 'auto'
+      position: 'relative',
+      background: '#fff',
+      padding: '1rem',
+      borderRadius: '8px',
+      maxWidth: '90%',
+      maxHeight: '90%',
+      overflowY: 'auto'
     });
     overlay.appendChild(modalContent);
 
@@ -49,36 +62,38 @@
     const closeBtn = document.createElement('button');
     closeBtn.innerText = '✕';
     Object.assign(closeBtn.style, {
-      position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'transparent', border: 'none',
-      fontSize: '1.5rem', cursor: 'pointer'
+      position: 'absolute',
+      top: '0.5rem',
+      right: '0.5rem',
+      background: 'transparent',
+      border: 'none',
+      fontSize: '1.5rem',
+      cursor: 'pointer'
     });
     modalContent.appendChild(closeBtn);
     closeBtn.addEventListener('click', () => overlay.style.display = 'none');
 
-    // Programmatic trigger link
-    const triggerLink = document.createElement('a');
-    triggerLink.href = '#';
-    triggerLink.id = 'open-customizer-link';
-    triggerLink.innerText = 'Customize Mural';
-    Object.assign(triggerLink.style, {
-      display: 'inline-block', margin: '1rem 0', padding: '0.5rem 1rem',
-      background: '#007bff', color: '#fff', textDecoration: 'none', borderRadius: '4px', cursor: 'pointer'
-    });
-    // Insert trigger link before original container
-    originalContainer.parentNode.insertBefore(triggerLink, originalContainer);
-    triggerLink.addEventListener('click', (e) => {
-      e.preventDefault();
-      overlay.style.display = 'flex';
-    });
+    // Listen on external trigger (Shopify button/link)
+    const trigger = document.getElementById('open-customizer-btn');
+    if (!trigger) {
+      console.warn('Customizer: trigger element #open-customizer-btn not found');
+    } else {
+      trigger.addEventListener('click', (e) => {
+        e.preventDefault();
+        overlay.style.display = 'flex';
+      });
+    }
 
     // Build UI inside originalContainer
     const container = originalContainer;
-    container.innerHTML = ''; // clear existing
+    container.innerHTML = ''; // clear existing contents
 
-    // Controls
+    // Controls wrapper
     const controls = document.createElement('div');
-    controls.style.display = 'flex'; controls.style.flexWrap = 'wrap';
-    controls.style.gap = '0.5rem'; controls.style.marginBottom = '1rem';
+    controls.style.display = 'flex';
+    controls.style.flexWrap = 'wrap';
+    controls.style.gap = '0.5rem';
+    controls.style.marginBottom = '1rem';
     container.appendChild(controls);
 
     // Unit select
@@ -97,16 +112,17 @@
     variantSelect.selectedIndex = defaultIdx;
     controls.appendChild(variantSelect);
 
-    // Dimension inputs
+    // Dimension inputs (inches/cm)
     const widthInput = Object.assign(document.createElement('input'), { type:'number', placeholder:'Width', min:1 });
     const heightInput = Object.assign(document.createElement('input'), { type:'number', placeholder:'Height', min:1 });
     controls.append(widthInput, heightInput);
 
+    // Dimension inputs (feet/inches)
     const widthFeet = Object.assign(document.createElement('input'), { type:'number', placeholder:'Feet', min:0 });
     const widthInches = Object.assign(document.createElement('input'), { type:'number', placeholder:'Inches', min:0, max:11 });
     const heightFeet = Object.assign(document.createElement('input'), { type:'number', placeholder:'Feet', min:0 });
     const heightInches = Object.assign(document.createElement('input'), { type:'number', placeholder:'Inches', min:0, max:11 });
-    [widthFeet,widthInches,heightFeet,heightInches].forEach(el => { el.style.display = 'none'; controls.appendChild(el); });
+    [widthFeet,widthInches,heightFeet,heightInches].forEach(el => { el.style.display='none'; controls.appendChild(el); });
 
     // Flip select
     const flipSelect = document.createElement('select');
@@ -127,8 +143,7 @@
     const priceDiv = document.createElement('div'); priceDiv.innerText = 'Price: $0.00'; container.appendChild(priceDiv);
     const qty = document.querySelector('input[name="quantity"]'); if(qty){ qty.step='any'; qty.min=0; }
 
-    // Cropper setup remains unchanged from working version
-    // ...
+    // Cropper logic remains as in the working version...
 
     console.log('Customizer initialized inside modal');
   }
