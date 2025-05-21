@@ -1,3 +1,7 @@
+if (window.Shopify && Shopify.designMode) {
+  console.log('Customizer: skipping in theme editor');
+  return;
+}
 // public/customizer.js
 ;(function(){
   // 1) Load Cropper.js + CSS
