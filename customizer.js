@@ -56,12 +56,9 @@
       fontSize: '1.5rem', background: 'transparent', border: 'none', cursor: 'pointer'
     });
     modal.appendChild(closeBtn);
-    closeBtn.addEventListener('click', () => {
-      console.log('Closing modal');
-      overlay.style.display = 'none';
-    });
+    closeBtn.addEventListener('click', () => overlay.style.display = 'none');
 
-    // Controls
+    // Controls container
     const controls = document.createElement('div');
     Object.assign(controls.style, {
       padding: '1rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem', borderBottom: '1px solid #ddd'
@@ -80,7 +77,7 @@
     });
     modal.appendChild(footer);
 
-    // Elements
+    // UI Elements
     const unitSelect = document.createElement('select');
     [['inches','Inches'],['feet','Feet'],['cm','Centimeters']].forEach(([v,t]) => {
       const o = document.createElement('option'); o.value = v; o.text = t; unitSelect.appendChild(o);
@@ -106,11 +103,9 @@
       const o = document.createElement('option'); o.value = v; o.text = t; flipSelect.appendChild(o);
     }); controls.appendChild(flipSelect);
 
-    const bwCheckbox = document.createElement('input'); bwCheckbox.type = 'checkbox';
-    controls.append(document.createTextNode(' B&W '), bwCheckbox);
+    const bwCheckbox = document.createElement('input'); bwCheckbox.type = 'checkbox'; controls.append(document.createTextNode(' B&W '), bwCheckbox);
 
-    const panelsCheckbox = document.createElement('input'); panelsCheckbox.type = 'checkbox';
-    controls.append(document.createTextNode(' Show panels '), panelsCheckbox);
+    const panelsCheckbox = document.createElement('input'); panelsCheckbox.type = 'checkbox'; controls.append(document.createTextNode(' Show panels '), panelsCheckbox);
 
     const priceDiv = document.createElement('div'); priceDiv.innerText = 'Price: $0.00'; footer.appendChild(priceDiv);
     const addBtn = document.createElement('button'); addBtn.type = 'button'; addBtn.innerText = 'Add to Cart';
@@ -119,7 +114,7 @@
 
     const qtyInput = document.querySelector('input[name="quantity"]'); if (qtyInput) { qtyInput.step = '1'; qtyInput.min = 1; }
 
-    // Cropper
+    // Cropper instance
     let cropper, imgEl;
     function clearCanvas() { if (cropper) cropper.destroy(); canvasArea.innerHTML = ''; }
     function renderImage() {
@@ -156,7 +151,70 @@
       if (cropper && w > 0 && h > 0) {
         cropper.setAspectRatio(w / h);
         const sqft = Math.ceil((w * h) / 144) || 1;
-        const rawPriceCents = parseFloat(product.variants[variantSelect.value].price);
-        const unitPrice = rawPriceCents / 100;
+        const rawCents = parseFloat(product.variants[variantSelect.value].price);
+        const unitPrice = rawCents / 100;
         priceDiv.innerText = `Price: $${(unitPrice * sqft).toFixed(2)}`;
-        if (qtyInput)
+        if (qtyInput) qtyInput.value = sqft;
+      }
+    }
+
+    function applyFlip() {
+      const wrap = canvasArea.querySelector('.cropper-container');
+      if (wrap) wrap.style.transform = flipSelect.value==='horizontal'? 'scaleX(-1)' : flipSelect.value==='vertical'? 'scaleY(-1)' : '';
+    }
+    function applyBW() {
+      const wrap = canvasArea.querySelector('.cropper-container');
+      if (wrap) wrap.style.filter = bwCheckbox.checked? 'grayscale(100%)':'';
+    }
+    function drawPanels() {
+      const wrap = canvasArea.querySelector('.cropper-container'); if (!cropper||!wrap) return;
+      wrap.style.position='relative';
+      // remove existing lines first
+      wrap.querySelectorAll('.panel-line').forEach(l=>l.remove());
+      const data = cropper.getCropBoxData();
+      const total = getWidthInches(), maxW = 25;
+      const count = Math.ceil(total/maxW), step = data.width/count;
+      for (let i=1;i<count;i++){
+        const x = data.left+step*i;
+        const line = document.createElement('div'); line.classList.add('panel-line');
+        Object.assign(line.style,{
+          position:'absolute',top:`${data.top}px`,left:`${x}px`,height:`${data.height}px`,width:'2px',background:'rgba(255,0,0,0.7)',pointerEvents:'none'
+        }); wrap.appendChild(line);
+      }
+    }
+
+    // Event bindings
+    openBtn.addEventListener('click', ()=> overlay.style.display='flex');
+    variantSelect.addEventListener('change', ()=>{ renderImage(); applyFlip(); applyBW(); });
+    unitSelect.addEventListener('change', ()=>{
+      const feet = unitSelect.value==='feet';
+      widthInput.hidden=heightInput.hidden=feet;
+      widthFeet.hidden=widthInches.hidden=heightFeet.hidden=heightInches.hidden=!feet;
+      updateAll(); if(panelsCheckbox.checked) drawPanels();
+    });
+    [widthInput,heightInput,widthFeet,widthInches,heightFeet,heightInches]
+      .forEach(el=>el.addEventListener('input',()=>{ updateAll(); if(panelsCheckbox.checked) drawPanels(); }));
+    flipSelect.addEventListener('change',applyFlip);
+    bwCheckbox.addEventListener('change',applyBW);
+    panelsCheckbox.addEventListener('change',()=>{ if(panelsCheckbox.checked) drawPanels(); else canvasArea.querySelectorAll('.panel-line').forEach(l=>l.remove()); });
+    addBtn.addEventListener('click',()=>{
+      if(!cropper)return;
+      cropper.getCroppedCanvas().toBlob(blob=>{
+        const reader=new FileReader(); reader.onloadend=()=>{
+          const props={Width:unitSelect.value==='feet'?`${widthFeet.value}ft ${widthInches.value}in`:`${widthInput.value} ${unitSelect.value}`,Height:unitSelect.value==='feet'?`${heightFeet.value}ft ${heightInches.value}in`:`${heightInput.value} ${unitSelect.value}`,Flip:flipSelect.value,BW:bwCheckbox.checked?'Yes':'No',Panels:panelsCheckbox.checked?'Yes':'No'};
+          const qty=Math.ceil(getWidthInches()*getHeightInches()/144)||1;
+          fetch('/cart/add.js',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:product.variants[variantSelect.value].id,quantity:qty,properties:props})})
+            .then(r=>r.json()).then(()=>window.location.href='/cart').catch(console.error);
+        };
+        reader.readAsDataURL(blob);
+      });
+    });
+
+    // Initial draw
+    renderImage(); updateAll();
+  }
+
+  // Ensure init runs even if script loads after DOMContentLoaded
+  function ready(fn){ document.readyState!=='loading'?fn():document.addEventListener('DOMContentLoaded',fn); }
+  ready(()=>loadCropper().then(initCustomizer).catch(console.error));
+})();
