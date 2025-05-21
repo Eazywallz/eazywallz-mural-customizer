@@ -36,16 +36,32 @@
     // Create modal overlay
     const overlay = document.createElement('div');
     Object.assign(overlay.style, {
-      position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-      background: 'rgba(0,0,0,0.5)', display: 'none', alignItems: 'center', justifyContent: 'center', zIndex: 10000
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100vw',
+      height: '100vh',
+      background: 'rgba(0,0,0,0.5)',
+      display: 'none',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 10000
     });
     document.body.appendChild(overlay);
 
     // Modal content
     const modalContent = document.createElement('div');
     Object.assign(modalContent.style, {
-      position: 'relative', background: '#fff', padding: '1rem', borderRadius: '8px',
-      width: '75vw', height: '75vh', maxWidth: '1200px', maxHeight: '900px', overflow: 'hidden', boxSizing: 'border-box'
+      position: 'relative',
+      background: '#fff',
+      padding: '1rem',
+      borderRadius: '8px',
+      width: '75vw',
+      height: '75vh',
+      maxWidth: '1200px',
+      maxHeight: '900px',
+      overflow: 'hidden',
+      boxSizing: 'border-box'
     });
     overlay.appendChild(modalContent);
 
@@ -57,7 +73,13 @@
     const closeBtn = document.createElement('button');
     closeBtn.innerText = '✕';
     Object.assign(closeBtn.style, {
-      position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer'
+      position: 'absolute',
+      top: '0.5rem',
+      right: '0.5rem',
+      background: 'transparent',
+      border: 'none',
+      fontSize: '1.5rem',
+      cursor: 'pointer'
     });
     modalContent.appendChild(closeBtn);
     closeBtn.addEventListener('click', () => overlay.style.display = 'none');
@@ -90,7 +112,9 @@
 
     // Variant select
     const variantSelect = document.createElement('select');
-    product.variants.forEach((v,i) => { const o = document.createElement('option'); o.value = i; o.text = v.title; variantSelect.appendChild(o); });
+    product.variants.forEach((v,i) => {
+      const o = document.createElement('option'); o.value = i; o.text = v.title; variantSelect.appendChild(o);
+    });
     controls.appendChild(variantSelect);
 
     // Dimension inputs
@@ -99,16 +123,17 @@
     controls.append(widthInput, heightInput);
 
     // Feet/inches inputs
-    const widthFeet = Object.assign(document.createElement('input'), { type: 'number', placeholder: 'Feet', min: 0 });
-    const widthInches = Object.assign(document.createElement('input'), { type: 'number', placeholder: 'Inches', min: 0, max: 11 });
-    const heightFeet = Object.assign(document.createElement('input'), { type: 'number', placeholder: 'Feet', min: 0 });
-    const heightInches = Object.assign(document.createElement('input'), { type: 'number', placeholder: 'Inches', min: 0, max: 11 });
+    const widthFeet = Object.assign(document.createElement('input'), { type: 'number', placeholder: 'Feet', min: 0, maxLength: 3 });
+    const widthInches = Object.assign(document.createElement('input'), { type: 'number', placeholder: 'Inches', min: 0, max: 11, maxLength: 2 });
+    const heightFeet = Object.assign(document.createElement('input'), { type: 'number', placeholder: 'Feet', min: 0, maxLength: 3 });
+    const heightInches = Object.assign(document.createElement('input'), { type: 'number', placeholder: 'Inches', min: 0, max: 11, maxLength: 2 });
     [widthFeet,widthInches,heightFeet,heightInches].forEach(el => { el.style.display = 'none'; controls.appendChild(el); });
 
     // Flip
     const flipSelect = document.createElement('select');
-    [['none','None'],['horizontal','Flip H'],['vertical','Flip V']].forEach(([v,t])=>{ const o=document.createElement('option'); o.value=v; o.text=t; flipSelect.appendChild(o); });
-    controls.appendChild(flipSelect);
+    [['none','None'],['horizontal','Flip H'],['vertical','Flip V']].forEach(([v,t])=>{
+      const o=document.createElement('option'); o.value=v; o.text=t; flipSelect.appendChild(o);
+    }); controls.appendChild(flipSelect);
 
     // B&W
     const bwCheckbox = document.createElement('input'); bwCheckbox.type = 'checkbox';
@@ -122,9 +147,15 @@
     const priceDiv = document.createElement('div'); priceDiv.innerText = 'Price: $0.00'; container.appendChild(priceDiv);
     const qtyInput = document.querySelector('input[name="quantity"]'); if(qtyInput){ qtyInput.step='any'; qtyInput.min=0; }
 
+    // Add to Cart button
+    const addBtn = document.createElement('button');
+    addBtn.innerText = 'Add to Cart';
+    Object.assign(addBtn.style, { marginTop: '1rem', padding: '0.5rem 1rem', background: '#007bff', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' });
+    container.appendChild(addBtn);
+
     // Cropper
     let cropper, imgEl;
-    function clearContainer() { if (cropper) { cropper.destroy(); } container.querySelector('.cropper-container')?.remove(); clearPanels(); }
+    function clearContainer() { if (cropper) cropper.destroy(); container.querySelector('.cropper-container')?.remove(); clearPanels(); }
     function renderImage() {
       clearContainer();
       const variant = product.variants[variantSelect.value];
@@ -143,44 +174,4 @@
     }
     function getHeightInches() {
       if (unitSelect.value === 'feet') return (+heightFeet.value||0)*12 + (+heightInches.value||0);
-      const v = +heightInput.value||0; return unitSelect.value==='cm'? v*0.393700787 : v;
-    }
-
-    function updateAll() {
-      const w = getWidthInches(), h = getHeightInches();
-      if (cropper && w>0 && h>0) { cropper.setAspectRatio(w/h); const area = w*h/144; priceDiv.innerText = `Price: $${((product.variants[variantSelect.value].price/100)*area).toFixed(2)}`; if(qtyInput) qtyInput.value = area.toFixed(2); }
-    }
-
-    function applyFlip() { const wrap = container.querySelector('.cropper-container'); if(wrap) wrap.style.transform = flipSelect.value==='horizontal' ? 'scaleX(-1)' : flipSelect.value==='vertical' ? 'scaleY(-1)' : ''; }
-    function applyBW() { const wrap = container.querySelector('.cropper-container'); if(wrap) wrap.style.filter = bwCheckbox.checked ? 'grayscale(100%)' : ''; }
-
-    function drawPanels() {
-      clearPanels(); if(!cropper) return;
-      const data = cropper.getCropBoxData();
-      const total = getWidthInches(); const panelMax = unitSelect.value==='cm'?25*2.54:25;
-      const count = Math.ceil(total/panelMax), wrap = container.querySelector('.cropper-container'); wrap.style.position='relative';
-      for(let i=1;i<count;i++){ const x = data.left + (data.width/count)*i; const line = document.createElement('div'); line.className='panel-line'; Object.assign(line.style,{position:'absolute',top:`${data.top}px`,left:`${x}px`,width:'2px',height:`${data.height}px`,background:'rgba(0,0,0,0.7)',pointerEvents:'none'}); wrap.appendChild(line);}    }
-    function clearPanels() { container.querySelectorAll('.panel-line').forEach(el=>el.remove()); }
-
-    // Event wiring
-    variantSelect.addEventListener('change', () => { renderImage(); applyFlip(); applyBW(); });
-    unitSelect.addEventListener('change', () => {
-      const isFeet = unitSelect.value==='feet';
-      [widthInput,heightInput].forEach(el=>el.style.display=isFeet?'none':'inline-block');
-      [widthFeet,widthInches,heightFeet,heightInches].forEach(el=>el.style.display=isFeet?'inline-block':'none');
-      updateAll(); if(panelsCheckbox.checked) drawPanels();
-    });
-    [widthInput,heightInput,widthFeet,widthInches,heightFeet,heightInches].forEach(el=> el.addEventListener('input', () => { updateAll(); if(panelsCheckbox.checked) drawPanels(); }));
-    flipSelect.addEventListener('change', applyFlip);
-    bwCheckbox.addEventListener('change', applyBW);
-    panelsCheckbox.addEventListener('change', () => panelsCheckbox.checked ? drawPanels() : clearPanels());
-
-    // Initial render
-    renderImage();
-    updateAll();
-
-    console.log('Customizer initialized inside modal');
-  }
-
-  document.addEventListener('DOMContentLoaded', () => loadCropper().then(initCustomizer).catch(console.error));
-})();
+      const v = +heightInput.value||0; return unitSelect.value==='cm'? v*
