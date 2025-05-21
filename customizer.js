@@ -25,6 +25,7 @@
 
     // Add "Open Customizer" button
     const openBtn = document.createElement('button');
+    openBtn.type = 'button';
     openBtn.innerText = 'Customize Mural';
     Object.assign(openBtn.style, { margin: '1rem 0', padding: '0.5rem 1rem', background: '#007bff', color: '#fff', border: 'none', cursor: 'pointer' });
     container.appendChild(openBtn);
@@ -49,13 +50,16 @@
     overlay.appendChild(modal);
 
     // Close button
-    const closeBtn = document.createElement('button'); closeBtn.innerText = '✕';
+    const closeBtn = document.createElement('button'); closeBtn.type = 'button'; closeBtn.innerText = '✕';
     Object.assign(closeBtn.style, {
       position: 'absolute', top: '10px', right: '10px',
       fontSize: '1.5rem', background: 'transparent', border: 'none', cursor: 'pointer'
     });
     modal.appendChild(closeBtn);
-    closeBtn.addEventListener('click', () => overlay.style.display = 'none');
+    closeBtn.addEventListener('click', () => {
+      console.log('Closing modal');
+      overlay.style.display = 'none';
+    });
 
     // Controls
     const controls = document.createElement('div');
@@ -109,7 +113,7 @@
     controls.append(document.createTextNode(' Show panels '), panelsCheckbox);
 
     const priceDiv = document.createElement('div'); priceDiv.innerText = 'Price: $0.00'; footer.appendChild(priceDiv);
-    const addBtn = document.createElement('button'); addBtn.innerText = 'Add to Cart';
+    const addBtn = document.createElement('button'); addBtn.type = 'button'; addBtn.innerText = 'Add to Cart';
     Object.assign(addBtn.style, { padding: '0.5rem 1rem', background: '#007bff', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' });
     footer.appendChild(addBtn);
 
@@ -155,88 +159,4 @@
         const rawPriceCents = parseFloat(product.variants[variantSelect.value].price);
         const unitPrice = rawPriceCents / 100;
         priceDiv.innerText = `Price: $${(unitPrice * sqft).toFixed(2)}`;
-        if (qtyInput) qtyInput.value = sqft;
-      }
-    }
-
-    function applyFlip() {
-      const wrap = canvasArea.querySelector('.cropper-container');
-      if (wrap) wrap.style.transform =
-        flipSelect.value === 'horizontal' ? 'scaleX(-1)' :
-        flipSelect.value === 'vertical'   ? 'scaleY(-1)' : '';
-    }
-    function applyBW() {
-      const wrap = canvasArea.querySelector('.cropper-container');
-      if (wrap) wrap.style.filter = bwCheckbox.checked ? 'grayscale(100%)' : '';
-    }
-    function drawPanels() {
-      const wrap = canvasArea.querySelector('.cropper-container');
-      if (!cropper || !wrap) return;
-      wrap.style.position = 'relative';
-      const data = cropper.getCropBoxData();
-      const total = getWidthInches();
-      const maxW = 25;
-      const count = Math.ceil(total / maxW);
-      const step = data.width / count;
-      for (let i = 1; i < count; i++) {
-        const x = data.left + step * i;
-        const line = document.createElement('div');
-        Object.assign(line.style, {
-          position: 'absolute', top: `${data.top}px`, left: `${x}px`,
-          height: `${data.height}px`, width: '2px', background: 'rgba(255,0,0,0.7)',
-          pointerEvents: 'none'
-        });
-        wrap.appendChild(line);
-      }
-    }
-
-    // Events
-    openBtn.addEventListener('click', () => overlay.style.display = 'flex');
-    variantSelect.addEventListener('change', () => { renderImage(); applyFlip(); applyBW(); });
-    unitSelect.addEventListener('change', () => {
-      const feet = unitSelect.value === 'feet';
-      widthInput.hidden = heightInput.hidden = feet;
-      widthFeet.hidden = widthInches.hidden = heightFeet.hidden = heightInches.hidden = !feet;
-      updateAll(); if (panelsCheckbox.checked) drawPanels();
-    });
-    [widthInput, heightInput, widthFeet, widthInches, heightFeet, heightInches].forEach(el =>
-      el.addEventListener('input', () => { updateAll(); if (panelsCheckbox.checked) drawPanels(); })
-    );
-    flipSelect.addEventListener('change', applyFlip);
-    bwCheckbox.addEventListener('change', applyBW);
-    panelsCheckbox.addEventListener('change', () => {
-      if (panelsCheckbox.checked) drawPanels();
-      else canvasArea.querySelectorAll('.panel-line').forEach(l => l.remove());
-    });
-
-    addBtn.addEventListener('click', () => {
-      if (!cropper) return;
-      cropper.getCroppedCanvas().toBlob(blob => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const props = {
-            Width: unitSelect.value === 'feet' ? `${widthFeet.value}ft ${widthInches.value}in` : `${widthInput.value} ${unitSelect.value}`,
-            Height: unitSelect.value === 'feet' ? `${heightFeet.value}ft ${heightInches.value}in` : `${heightInput.value} ${unitSelect.value}`,
-            Flip: flipSelect.value,
-            BW: bwCheckbox.checked ? 'Yes' : 'No',
-            Panels: panelsCheckbox.checked ? 'Yes' : 'No',
-          };
-          const qty = Math.ceil(getWidthInches() * getHeightInches() / 144) || 1;
-          fetch('/cart/add.js', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: product.variants[variantSelect.value].id, quantity: qty, properties: props })
-          })
-          .then(r => r.json())
-          .then(() => window.location.href = '/cart')
-          .catch(console.error);
-        };
-        reader.readAsDataURL(blob);
-      });
-    });
-
-    // Initial render
-    renderImage(); updateAll();
-  }
-
-  document.addEventListener('DOMContentLoaded', () => { loadCropper().then(initCustomizer).catch(console.error); });
-})();
+        if (qtyInput)
