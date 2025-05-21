@@ -27,6 +27,7 @@
     // Create modal overlay
     const overlay = document.createElement('div');
     overlay.id = 'customizer-modal';
+    // initial hidden, flex container
     Object.assign(overlay.style, {
       position: 'fixed',
       top: 0,
@@ -48,15 +49,18 @@
       background: '#fff',
       padding: '1rem',
       borderRadius: '8px',
-      width: '75vw',
-      height: '75vh',
-      overflowY: 'auto'
+      width: '75%',      // span 75% of viewport width
+      height: '75%',     // span 75% of viewport height
+      maxWidth: '1200px',
+      maxHeight: '900px',
+      overflowY: 'auto',
+      boxSizing: 'border-box'
     });
     overlay.appendChild(modalContent);
 
     // Move original container into modal
     modalContent.appendChild(originalContainer);
-    Object.assign(originalContainer.style, { maxWidth: '100%', margin: '0 auto' });
+    Object.assign(originalContainer.style, { width: '100%', margin: '0 auto' });
 
     // Close button
     const closeBtn = document.createElement('button');
@@ -105,6 +109,7 @@
 
     // Variant select
     const variantSelect = document.createElement('select');
+    // product is from closure (loaded earlier)
     product.variants.forEach((v,i) => {
       const o = document.createElement('option'); o.value = i; o.text = v.title; variantSelect.appendChild(o);
     });
