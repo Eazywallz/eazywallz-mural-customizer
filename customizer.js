@@ -48,15 +48,15 @@
       background: '#fff',
       padding: '1rem',
       borderRadius: '8px',
-      maxWidth: '90%',
-      maxHeight: '90%',
+      width: '75vw',
+      height: '75vh',
       overflowY: 'auto'
     });
     overlay.appendChild(modalContent);
 
     // Move original container into modal
     modalContent.appendChild(originalContainer);
-    Object.assign(originalContainer.style, { maxWidth: '500px', margin: '0 auto' });
+    Object.assign(originalContainer.style, { maxWidth: '100%', margin: '0 auto' });
 
     // Close button
     const closeBtn = document.createElement('button');
