@@ -131,7 +131,7 @@
     // load variant image
     function loadImage() {
       const variant = product.variants[variantSelect.value];
-      let src = variant.image?.src || variant.featured_image?.src || product.images[0];
+      let src = variant.image?.src || variant.featured_image?.src || product.images[1];
       if (src.startsWith('//')) src = location.protocol + src;
       return new Promise(res => {
         fabric.Image.fromURL(src, img => {
