@@ -67,7 +67,7 @@
 
     // Canvas area
     const canvasArea = document.createElement('div');
-    Object.assign(canvasArea.style, { flex: '1', position: 'relative', overflow: 'hidden' });
+    Object.assign(canvasArea.style, { flex: '1', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' });
     modal.appendChild(canvasArea);
 
     // Footer
@@ -122,7 +122,10 @@
       const variant = product.variants[variantSelect.value];
       let src = variant.image?.src || variant.featured_image?.src || product.images[0];
       if (src.startsWith('//')) src = location.protocol + src;
-      imgEl = document.createElement('img'); imgEl.src = src;
+      imgEl = document.createElement('img');
+      // ensure responsive large image
+      Object.assign(imgEl.style, { maxWidth: '100%', maxHeight: '100%', display: 'block' });
+      imgEl.src = src;
       imgEl.onload = () => {
         canvasArea.appendChild(imgEl);
         cropper = new Cropper(imgEl, {
@@ -169,7 +172,6 @@
     function drawPanels() {
       const wrap = canvasArea.querySelector('.cropper-container'); if (!cropper||!wrap) return;
       wrap.style.position='relative';
-      // remove existing lines first
       wrap.querySelectorAll('.panel-line').forEach(l=>l.remove());
       const data = cropper.getCropBoxData();
       const total = getWidthInches(), maxW = 25;
@@ -201,7 +203,7 @@
       if(!cropper)return;
       cropper.getCroppedCanvas().toBlob(blob=>{
         const reader=new FileReader(); reader.onloadend=()=>{
-          const props={Width:unitSelect.value==='feet'?`${widthFeet.value}ft ${widthInches.value}in`:`${widthInput.value} ${unitSelect.value}`,Height:unitSelect.value==='feet'?`${heightFeet.value}ft ${heightInches.value}in`:`${heightInput.value} ${unitSelect.value}`,Flip:flipSelect.value,BW:bwCheckbox.checked?'Yes':'No',Panels:panelsCheckbox.checked?'Yes':'No'};
+          const props={Width:unitSelect.value==='feet'?`${widthFeet.value}ft ${widthInches.value}in`:`${widthInput.value} ${unitSelect.value}`,Height:unitSelect.value==='feet'?`${heightFeet.value}ft ${heightInches.value}in`:``${heightInput.value} ${unitSelect.value}``,Flip:flipSelect.value,BW:bwCheckbox.checked?'Yes':'No',Panels:panelsCheckbox.checked?'Yes':'No'};
           const qty=Math.ceil(getWidthInches()*getHeightInches()/144)||1;
           fetch('/cart/add.js',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:product.variants[variantSelect.value].id,quantity:qty,properties:props})})
             .then(r=>r.json()).then(()=>window.location.href='/cart').catch(console.error);
