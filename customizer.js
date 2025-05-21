@@ -34,7 +34,7 @@
       openBtn = document.createElement('button');
       openBtn.id = 'customizer-open-btn';
       openBtn.textContent = 'Customize Mural';
-      openBtn.style.cssText = 'margin:1rem 0;padding:.5rem 1rem;background:#111;color:#fff;border:none;cursor:pointer;';
+      openBtn.style.cssText = 'margin:1rem 0;padding:0.75rem 1.5rem;background:#111;color:#fff;border:none;cursor:pointer;font-size:1rem;';
       container.prepend(openBtn);
     }
 
@@ -63,9 +63,8 @@
       modal.style.cssText = `
         background: #fff;
         border-radius: 8px;
-        width: 75vw;
-        max-width: 1200px;
-        max-height: 85vh;
+        width: 95vw;
+        height: 90vh;
         display: flex;
         overflow: hidden;
         position: relative;
@@ -90,8 +89,8 @@
       sidebar = document.createElement('div');
       sidebar.id = 'customizer-sidebar';
       sidebar.style.cssText = `
-        width: 300px;
-        padding: 1rem;
+        width: 320px;
+        padding: 1.5rem;
         background: #f9f9f9;
         overflow-y: auto;
         border-right: 1px solid #ddd;
@@ -121,7 +120,7 @@
       footer = document.createElement('div');
       footer.id = 'customizer-footer';
       footer.style.cssText = `
-        padding: 1rem;
+        padding: 1.5rem;
         border-top: 1px solid #ddd;
         display: flex;
         justify-content: space-between;
@@ -134,39 +133,51 @@
     function makeLabel(text) {
       const l = document.createElement('label');
       l.textContent = text;
-      l.style.fontWeight = 'bold';
+      l.style.cssText = 'font-weight:bold;display:block;margin-bottom:10px;font-size:1rem;';
       return l;
     }
-    sidebar.append(makeLabel('Wall dimensions'), document.createElement('br'));
+    sidebar.append(makeLabel('Wall dimensions'));
     const unitSel = document.createElement('select');
     ['inches','feet','cm'].forEach(u => unitSel.add(new Option(u,u)));
-    unitSel.style.width = '100%';
-    sidebar.append(unitSel, document.createElement('br'));
-    const wIn = Object.assign(document.createElement('input'), { type: 'number', placeholder: 'Width', style: 'width:100%;margin:.5rem 0;' });
-    const hIn = Object.assign(document.createElement('input'), { type: 'number', placeholder: 'Height', style: 'width:100%;margin:.5rem 0;' });
+    unitSel.style.cssText = 'width:100%;padding:10px;margin-bottom:10px;font-size:1rem;';
+    sidebar.append(unitSel);
+    const wIn = Object.assign(document.createElement('input'), { type: 'number', placeholder: 'Width', });
+    wIn.style.cssText = 'width:100%;padding:10px;margin-bottom:10px;font-size:1rem;';
+    const hIn = Object.assign(document.createElement('input'), { type: 'number', placeholder: 'Height', });
+    hIn.style.cssText = 'width:100%;padding:10px;margin-bottom:20px;font-size:1rem;';
     sidebar.append(wIn, hIn);
-    sidebar.append(makeLabel('Paper type'), document.createElement('div'));
+
+    sidebar.append(makeLabel('Paper type'));
     const variantSel = document.createElement('select');
     product.variants.forEach((v,i) => variantSel.add(new Option(v.title,i)));
-    variantSel.style.width = '100%';
+    variantSel.style.cssText = 'width:100%;padding:10px;margin-bottom:20px;font-size:1rem;';
     sidebar.append(variantSel);
-    sidebar.append(makeLabel('Options'), document.createElement('div'));
+
+    sidebar.append(makeLabel('Options'));
     const flipSel = document.createElement('select');
     ['none','h','v'].forEach(f => flipSel.add(new Option('Flip '+f,f)));
-    flipSel.style.marginRight = '1rem';
+    flipSel.style.cssText = 'padding:10px;margin-right:10px;margin-bottom:10px;font-size:1rem;';
     const bwChk = Object.assign(document.createElement('input'), { type: 'checkbox' });
+    bwChk.style.margin = '0 10px 10px 0';
     sidebar.append(flipSel, bwChk, document.createTextNode('Black & White'));
+
     sidebar.append(document.createElement('hr'));
+    sidebar.lastChild.style.margin = '20px 0';
     const panelsChk = Object.assign(document.createElement('input'), { type: 'checkbox' });
-    sidebar.append(panelsChk, document.createTextNode('Show panels'));
+    panelsChk.style.margin = '0 10px 10px 0';
+    const panelsLabel = document.createElement('span');
+    panelsLabel.textContent = 'Show panels';
+    panelsLabel.style.display = 'inline-block';
+    sidebar.append(panelsChk, panelsLabel);
 
     // build footer
     footer.innerHTML = '';
     const priceDiv = document.createElement('div');
     priceDiv.textContent = 'Price: $0.00';
+    priceDiv.style.fontSize = '1.1rem';
     const addBtn = document.createElement('button');
     addBtn.textContent = 'Add to Cart';
-    addBtn.style.cssText = 'padding:.5rem 1rem;background:#111;color:#fff;border:none;cursor:pointer;';
+    addBtn.style.cssText = 'padding:0.75rem 1.5rem;background:#111;color:#fff;border:none;cursor:pointer;font-size:1rem;';
     footer.append(priceDiv, addBtn);
 
     // core logic
