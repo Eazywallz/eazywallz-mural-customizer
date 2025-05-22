@@ -63,11 +63,21 @@
       maxWidth: '1200px',
       maxHeight: '900px',
       display: 'flex',
-      flexDirection: 'column',
-      position: 'relative',
+      flexDirection: 'row',
       overflow: 'hidden'
     });
     overlay.appendChild(modal);
+
+    const leftPanel = document.createElement('div');
+    Object.assign(leftPanel.style, {
+      width: '25%',
+      padding: '1rem',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '1rem',
+      borderRight: '1px solid #ddd'
+    });
+    modal.appendChild(leftPanel);
 
     const closeBtn = document.createElement('button');
     closeBtn.innerText = '✕';
@@ -87,81 +97,82 @@
     closeBtn.addEventListener('click', () => overlay.style.display = 'none');
     modal.appendChild(closeBtn);
 
-    const canvasWrapper = document.createElement('div');
-    Object.assign(canvasWrapper.style, {
+    const rightCanvasWrapper = document.createElement('div');
+    Object.assign(rightCanvasWrapper.style, {
       flex: '1',
       position: 'relative',
-      zIndex: '1',
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
+      background: '#eee',
       overflow: 'hidden'
     });
-    modal.appendChild(canvasWrapper);
+    modal.appendChild(rightCanvasWrapper);
 
     const fabricCanvas = document.createElement('canvas');
     fabricCanvas.id = 'fabric-canvas';
-    canvasWrapper.appendChild(fabricCanvas);
-
-    const controls = document.createElement('div');
-    Object.assign(controls.style, {
-      padding: '1rem',
-      borderTop: '1px solid #ddd',
-      display: 'flex',
-      flexWrap: 'wrap',
-      gap: '1rem',
-      alignItems: 'center'
-    });
-    modal.appendChild(controls);
+    rightCanvasWrapper.appendChild(fabricCanvas);
 
     const widthInput = Object.assign(document.createElement('input'), {
       type: 'number',
       placeholder: 'Width (in)',
-      min: 1,
-      style: 'width: 100px;'
+      min: 1
     });
     const heightInput = Object.assign(document.createElement('input'), {
       type: 'number',
       placeholder: 'Height (in)',
-      min: 1,
-      style: 'width: 100px;'
+      min: 1
     });
-    controls.appendChild(widthInput);
-    controls.appendChild(heightInput);
-
     const priceDisplay = document.createElement('div');
     priceDisplay.id = 'price-display';
     priceDisplay.innerText = 'Price: $0.00';
-    controls.appendChild(priceDisplay);
 
-    const flipSelect = document.createElement('select');
-    [['none','None'],['horizontal','Flip H'],['vertical','Flip V']]
-      .forEach(([v,t]) => {
-        const o = document.createElement('option');
-        o.value = v;
-        o.text = t;
-        flipSelect.appendChild(o);
-      });
-    controls.appendChild(flipSelect);
-
-    const bwCheckbox = Object.assign(document.createElement('input'), { type: 'checkbox' });
-    const bwLabel = document.createElement('label');
-    bwLabel.textContent = ' B&W';
-    controls.appendChild(bwCheckbox);
-    controls.appendChild(bwLabel);
-
-    const panelsCheckbox = Object.assign(document.createElement('input'), { type: 'checkbox' });
-    const panelsLabel = document.createElement('label');
-    panelsLabel.textContent = ' Show Panels';
-    controls.appendChild(panelsCheckbox);
-    controls.appendChild(panelsLabel);
+    [widthInput, heightInput, priceDisplay].forEach(el => leftPanel.appendChild(el));
 
     let canvas = new fabric.Canvas('fabric-canvas', {
       backgroundColor: '#fff',
-      preserveObjectStacking: true
+      selection: false
     });
 
-    let imgObj, cropBox;
+    let imgObj;
+
+    function updateCanvasSize() {
+      const w = parseFloat(widthInput.value);
+      const h = parseFloat(heightInput.value);
+      if (!w || !h) return;
+      const containerWidth = rightCanvasWrapper.clientWidth;
+      const containerHeight = rightCanvasWrapper.clientHeight;
+      const containerAspect = containerWidth / containerHeight;
+      const desiredAspect = w / h;
+
+      let canvasWidth, canvasHeight;
+      if (desiredAspect > containerAspect) {
+        canvasWidth = containerWidth;
+        canvasHeight = canvasWidth / desiredAspect;
+      } else {
+        canvasHeight = containerHeight;
+        canvasWidth = canvasHeight * desiredAspect;
+      }
+
+      canvas.setWidth(canvasWidth);
+      canvas.setHeight(canvasHeight);
+      fabricCanvas.width = canvasWidth;
+      fabricCanvas.height = canvasHeight;
+
+      if (imgObj) {
+        centerImage();
+      }
+
+      updatePrice();
+    }
+
+    function centerImage() {
+      imgObj.set({
+        left: (canvas.getWidth() - imgObj.getScaledWidth()) / 2,
+        top: (canvas.getHeight() - imgObj.getScaledHeight()) / 2
+      });
+      canvas.renderAll();
+    }
 
     function updatePrice() {
       const w = parseFloat(widthInput.value) || 0;
@@ -175,130 +186,49 @@
       }
     }
 
-    function updateCropBoxAspectRatio() {
-      const w = parseFloat(widthInput.value);
-      const h = parseFloat(heightInput.value);
-      if (!cropBox || !w || !h) return;
-      const aspect = w / h;
-      cropBox.set({
-        scaleY: 1,
-        scaleX: 1,
-        width: cropBox.height * aspect
-      });
-      canvas.renderAll();
-    }
-
     function loadImage() {
       const variant = product.variants[0];
       let src = variant.image?.src || variant.featured_image?.src || product.images[1];
       if (src.startsWith('//')) src = window.location.protocol + src;
 
-      console.log('Loading image from:', src);
-
       fabric.Image.fromURL(src, (img) => {
         canvas.clear();
         imgObj = img;
+
         img.set({
-          left: 0,
-          top: 0,
           originX: 'left',
           originY: 'top',
-          selectable: false
-        });
-
-        const canvasWidth = canvasWrapper.clientWidth || 1000;
-        const canvasHeight = canvasWrapper.clientHeight || 700;
-
-        fabricCanvas.width = canvasWidth;
-        fabricCanvas.height = canvasHeight;
-        canvas.setWidth(canvasWidth);
-        canvas.setHeight(canvasHeight);
-
-        canvas.add(imgObj);
-
-        // Create draggable crop box with aspect ratio lock
-        const aspect = (parseFloat(widthInput.value) || 4) / (parseFloat(heightInput.value) || 3);
-        cropBox = new fabric.Rect({
-          left: 100,
-          top: 100,
-          width: 300,
-          height: 300 / aspect,
-          fill: 'rgba(0,0,0,0.1)',
-          stroke: '#007bff',
-          strokeWidth: 2,
-          hasBorders: true,
-          hasControls: true,
-          lockRotation: true,
+          scaleX: 1,
+          scaleY: 1,
+          hasControls: false,
+          hasBorders: false,
+          selectable: true,
           lockScalingFlip: true,
-          cornerStyle: 'circle',
-          transparentCorners: false,
-          selectable: true
+          lockRotation: true
         });
 
-        canvas.add(cropBox);
-        canvas.setActiveObject(cropBox);
-        updatePrice();
-        if (panelsCheckbox.checked) drawPanels();
-        if (bwCheckbox.checked) applyBW();
+        // Resize to fit
+        const maxDim = Math.max(img.width, img.height);
+        const scale = Math.min(canvas.getWidth() / img.width, canvas.getHeight() / img.height);
+        img.set({
+          scaleX: scale,
+          scaleY: scale
+        });
+
+        canvas.add(img);
+        centerImage();
       });
     }
 
-    function drawPanels() {
-      const panelCount = 4;
-      const panelWidth = canvas.width / panelCount;
-      for (let i = 1; i < panelCount; i++) {
-        const line = new fabric.Line([i * panelWidth, 0, i * panelWidth, canvas.height], {
-          stroke: 'red',
-          strokeWidth: 2,
-          selectable: false,
-          evented: false
-        });
-        canvas.add(line);
-      }
-    }
-
-    function applyFlip() {
-      if (!imgObj) return;
-      if (flipSelect.value === 'horizontal') {
-        imgObj.set('flipX', true);
-        imgObj.set('flipY', false);
-      } else if (flipSelect.value === 'vertical') {
-        imgObj.set('flipY', true);
-        imgObj.set('flipX', false);
-      } else {
-        imgObj.set('flipX', false);
-        imgObj.set('flipY', false);
-      }
-      canvas.renderAll();
-    }
-
-    function applyBW() {
-      if (!imgObj) return;
-      if (bwCheckbox.checked) {
-        imgObj.filters = [new fabric.Image.filters.Grayscale()];
-        imgObj.applyFilters();
-      } else {
-        imgObj.filters = [];
-        imgObj.applyFilters();
-      }
-      canvas.renderAll();
-    }
-
-    widthInput.addEventListener('input', () => {
-      updatePrice();
-      updateCropBoxAspectRatio();
-    });
-    heightInput.addEventListener('input', () => {
-      updatePrice();
-      updateCropBoxAspectRatio();
-    });
-    flipSelect.addEventListener('change', applyFlip);
-    bwCheckbox.addEventListener('change', applyBW);
-    panelsCheckbox.addEventListener('change', loadImage);
+    widthInput.addEventListener('input', updateCanvasSize);
+    heightInput.addEventListener('input', updateCanvasSize);
 
     openBtn.addEventListener('click', () => {
       overlay.style.display = 'flex';
-      loadImage();
+      setTimeout(() => {
+        updateCanvasSize();
+        loadImage();
+      }, 100);
     });
   }
 
