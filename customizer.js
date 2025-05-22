@@ -94,7 +94,8 @@
       zIndex: '1',
       display: 'flex',
       justifyContent: 'center',
-      alignItems: 'center'
+      alignItems: 'center',
+      overflow: 'hidden'
     });
     modal.appendChild(canvasWrapper);
 
@@ -178,14 +179,29 @@
       const h = parseFloat(heightInput.value);
       if (!imgObj || !w || !h) return;
 
-      const canvasWidth = canvas.getWidth();
-      const canvasHeight = canvas.getHeight();
-      const targetAspect = w / h;
-      const targetWidth = canvasWidth;
-      const targetHeight = canvasWidth / targetAspect;
+      const aspect = w / h;
+      const canvasWidth = canvasWrapper.clientWidth || 1000;
+      const canvasHeight = canvasWrapper.clientHeight || 700;
 
-      canvas.setHeight(targetHeight);
-      fabricCanvas.height = targetHeight;
+      let cropW = imgObj.width;
+      let cropH = cropW / aspect;
+
+      if (cropH > imgObj.height) {
+        cropH = imgObj.height;
+        cropW = cropH * aspect;
+      }
+
+      imgObj.set({
+        cropX: (imgObj.width - cropW) / 2,
+        cropY: (imgObj.height - cropH) / 2,
+        width: cropW,
+        height: cropH,
+        scaleX: canvasWidth / cropW,
+        scaleY: canvasHeight / cropH,
+        left: 0,
+        top: 0
+      });
+
       canvas.renderAll();
     }
 
