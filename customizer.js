@@ -131,7 +131,7 @@
       i.id = id; i.type = type; i.placeholder = ph;
       i.min = min;
       if (max !== null) i.max = max;
-      if (hidden) i.hidden = true;
+      i.hidden = hidden;
       return i;
     }
 
@@ -142,27 +142,27 @@
     const variantSelect = createSelect('variant-select',
       product.variants.map((v,i)=>([i,v.title]))
     );
-    const widthInput  = createInput('width-input','number','Width',1,null,false);
-    const heightInput = createInput('height-input','number','Height',1,null,false);
+    const widthInput   = createInput('width-input','number','Width',1,null,false);
+    const heightInput  = createInput('height-input','number','Height',1,null,false);
     const widthFeet    = createInput('width-feet','number','Feet',0,null,true);
     const widthInches  = createInput('width-inches','number','Inches',0,11,true);
     const heightFeet   = createInput('height-feet','number','Feet',0,null,true);
     const heightInches = createInput('height-inches','number','Inches',0,11,true);
-    const flipSelect  = createSelect('flip-select', [
+    const flipSelect   = createSelect('flip-select', [
       ['none','None'],['horizontal','Flip H'],['vertical','Flip V']
     ]);
-    const bwCheckbox   = Object.assign(document.createElement('input'),{id:'bw-checkbox',type:'checkbox'});
-    const bwLabel      = document.createTextNode(' B&W');
-    const panelsCheckbox = Object.assign(document.createElement('input'),{id:'panels-checkbox',type:'checkbox'});
-    const panelsLabel    = document.createTextNode(' Show panels');
+    const bwCheckbox      = Object.assign(document.createElement('input'),{id:'bw-checkbox',type:'checkbox'});
+    const bwLabel         = document.createTextNode(' B&W');
+    const panelsCheckbox  = Object.assign(document.createElement('input'),{id:'panels-checkbox',type:'checkbox'});
+    const panelsLabel     = document.createTextNode(' Show panels');
 
     controls.append(
       unitSelect, variantSelect,
       widthInput, heightInput,
-      widthFeet,widthInches,heightFeet,heightInches,
+      widthFeet, widthInches, heightFeet, heightInches,
       flipSelect,
-      bwCheckbox,bwLabel,
-      panelsCheckbox,panelsLabel
+      bwCheckbox, bwLabel,
+      panelsCheckbox, panelsLabel
     );
 
     const priceDiv = document.createElement('div');
@@ -197,24 +197,36 @@
 
       imgEl = document.createElement('img');
       imgEl.src = src;
-      Object.assign(imgEl.style,{minWidth:'100%',minHeight:'100%',display:'block'});
+      Object.assign(imgEl.style,{
+        minWidth:'100%', minHeight:'100%', display:'block'
+      });
       imgEl.onload = () => {
         canvasArea.append(imgEl);
-        // wait a tick so container is sized
         setTimeout(()=>{
           cropper = new Cropper(imgEl, {
-            viewMode:1,autoCropArea:1,dragMode:'move',
-            cropBoxMovable:false,cropBoxResizable:false,
-            zoomable:false,scalable:false,responsive:true,
-            ready(){
+            viewMode: 1,
+            autoCropArea: 1,
+            dragMode: 'move',
+            cropBoxMovable: false,
+            cropBoxResizable: false,
+            zoomable: false,
+            scalable: false,
+            responsive: true,
+
+            // initial draw
+            ready() {
               updateAll();
+              if (panelsCheckbox.checked) drawPanels();
+            },
+            // redraw on move and end
+            cropmove() {
+              if (panelsCheckbox.checked) drawPanels();
+            },
+            cropend() {
               if (panelsCheckbox.checked) drawPanels();
             }
           });
-          ['cropmove','cropend'].forEach(evt=>
-            cropper.on(evt,()=>panelsCheckbox.checked && drawPanels())
-          );
-        },50);
+        }, 50);
       };
     }
 
@@ -238,8 +250,8 @@
       const w = getW(), h = getH();
       if (!cropper || w<=0 || h<=0) return;
       cropper.setAspectRatio(w/h);
-      const sqft    = Math.ceil((w*h)/144) || 1;
-      const priceC  = +product.variants[variantSelect.value].price;
+      const sqft   = Math.ceil((w*h)/144) || 1;
+      const priceC = +product.variants[variantSelect.value].price;
       priceDiv.innerText = `Price: $${((priceC/100)*sqft).toFixed(2)}`;
     }
 
@@ -327,7 +339,7 @@
             Width: unitSelect.value==='feet'
               ? `${widthFeet.value}ft ${widthInches.value}in`
               : `${widthInput.value} ${unitSelect.value}`,
-            Height:unitSelect.value==='feet'
+            Height: unitSelect.value==='feet'
               ? `${heightFeet.value}ft ${heightInches.value}in`
               : `${heightInput.value} ${unitSelect.value}`,
             Flip:   flipSelect.value,
