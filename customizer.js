@@ -1,37 +1,24 @@
-window.addEventListener("message", (event) => {
-  const product = event.data?.product;
-  if (!product) return;
-
-  console.log("✅ Product data received in iframe:", product);
-
-  const imageUrl = product.images?.[1] || product.images?.[0] || product.featured_image;
-  loadProductImage(imageUrl);
-  populateVariants(product.variants);
-});
 const canvas = new fabric.Canvas('mural-canvas', { selection: false });
 let imgInstance;
 let cropBox;
 
-// Attempt to infer product handle from URL
-const pathParts = window.location.pathname.split('/');
-const handle = pathParts.includes('products') ? pathParts[pathParts.indexOf('products') + 1] : null;
+// Listen for product data from Shopify via postMessage
+window.addEventListener("message", (event) => {
+  const product = event.data?.product;
+  if (!product) return;
 
-if (handle) {
-  fetch(`/products/${handle}.js`)
-    .then(res => res.json())
-    .then(product => {
+  console.log("✅ Product data received:", product);
+
   const imageUrl = product.images?.[1] || product.images?.[0] || product.featured_image;
   loadProductImage(imageUrl);
   populateVariants(product.variants);
 });
-}
 
 function loadProductImage(url) {
-  fabric.Image.fromURL(url, function(img) {
+  fabric.Image.fromURL(url, function (img) {
     imgInstance = img;
+
     img.set({
-      left: 0,
-      top: 0,
       hasBorders: false,
       hasControls: false,
       selectable: true,
@@ -41,13 +28,20 @@ function loadProductImage(url) {
     });
 
     img.scaleToHeight(canvas.getHeight());
+
+    img.left = (canvas.getWidth() - img.getScaledWidth()) / 2;
+    img.top = (canvas.getHeight() - img.getScaledHeight()) / 2;
+
     canvas.add(img);
     canvas.sendToBack(img);
+    canvas.renderAll();
+
+    updateCrop(); // draw crop box after image loads
   });
 }
 
 function populateVariants(variants) {
-  const materialSelect = document.getElementById('material');
+  const materialSelect = document.getElementById("material");
   materialSelect.innerHTML = '';
   variants.forEach(variant => {
     const sqftPrice = (variant.price / 100).toFixed(2);
@@ -60,15 +54,14 @@ function populateVariants(variants) {
   updatePrice();
 }
 
-document.getElementById('width').addEventListener('input', updateCrop);
-document.getElementById('height').addEventListener('input', updateCrop);
-document.getElementById('material').addEventListener('change', updatePrice);
+document.getElementById("width").addEventListener("input", updateCrop);
+document.getElementById("height").addEventListener("input", updateCrop);
+document.getElementById("material").addEventListener("change", updatePrice);
 
 function updateCrop() {
-  const width = parseFloat(document.getElementById('width').value);
-  const height = parseFloat(document.getElementById('height').value);
-
-  if (!width || !height) return;
+  const width = parseFloat(document.getElementById("width").value);
+  const height = parseFloat(document.getElementById("height").value);
+  if (!width || !height || !canvas) return;
 
   const ratio = width / height;
   const canvasW = canvas.getWidth();
@@ -103,9 +96,9 @@ function updateCrop() {
 }
 
 function updatePrice() {
-  const width = parseFloat(document.getElementById('width').value);
-  const height = parseFloat(document.getElementById('height').value);
-  const material = document.getElementById('material');
+  const width = parseFloat(document.getElementById("width").value);
+  const height = parseFloat(document.getElementById("height").value);
+  const material = document.getElementById("material");
   const pricePerSqft = parseFloat(material.options[material.selectedIndex]?.dataset.price || 0);
 
   if (!width || !height) return;
@@ -113,9 +106,54 @@ function updatePrice() {
   const area = (width * height) / 144;
   const price = area * pricePerSqft;
 
-  document.getElementById('price-display').innerText = `Total: $${price.toFixed(2)}`;
+  document.getElementById("price-display").innerText = `Total: $${price.toFixed(2)}`;
 }
 
 function addToCart() {
-  alert('This will send data to Shopify cart using line item properties (next step).');
+  const width = parseFloat(document.getElementById("width").value);
+  const height = parseFloat(document.getElementById("height").value);
+  const materialSelect = document.getElementById("material");
+  const variantId = materialSelect.value;
+
+  if (!width || !height || !variantId) {
+    alert("Please enter dimensions and select a material.");
+    return;
+  }
+
+  const area = (width * height) / 144;
+  const quantity = Math.max(1, Math.round(area));
+
+  const crop = cropBox?.getBoundingRect?.() || {};
+  const cropData = {
+    left: Math.round(crop.left || 0),
+    top: Math.round(crop.top || 0),
+    width: Math.round(crop.width || 0),
+    height: Math.round(crop.height || 0),
+  };
+
+  const properties = {
+    Width: `${width} in`,
+    Height: `${height} in`,
+    Area: `${area.toFixed(2)} sqft`,
+    CropPosition: `X:${cropData.left}, Y:${cropData.top}, W:${cropData.width}, H:${cropData.height}`
+  };
+
+  fetch("/cart/add.js", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      id: variantId,
+      quantity: quantity,
+      properties: properties,
+    }),
+  })
+    .then((res) => res.json())
+    .then(() => {
+      alert("✅ Added to cart!");
+      window.location.href = "/cart";
+    })
+    .catch((err) => {
+      console.error("Add to cart failed", err);
+      alert("❌ Could not add to cart.");
+    });
 }
