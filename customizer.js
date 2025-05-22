@@ -256,18 +256,25 @@
     }
 
     function applyFlip(){
-      const wrapper = canvasArea.querySelector('.cropper-canvas');
-      if (wrapper){
-        wrapper.style.transform =
-          flipSelect.value==='horizontal'? 'scaleX(-1)' :
-          flipSelect.value==='vertical'?   'scaleY(-1)' : '';
+      if (!cropper) return;
+      const data = cropper.getData();
+      if (flipSelect.value === 'horizontal') {
+        cropper.scaleX(data.scaleX === -1 ? 1 : -1);
+      } else if (flipSelect.value === 'vertical') {
+        cropper.scaleY(data.scaleY === -1 ? 1 : -1);
+      } else {
+        // reset both
+        if (data.scaleX !== 1) cropper.scaleX(1);
+        if (data.scaleY !== 1) cropper.scaleY(1);
       }
+      updateAll();
+      if (panelsCheckbox.checked) drawPanels();
     }
 
     function applyBW(){
-      const wrapper = canvasArea.querySelector('.cropper-canvas');
-      if (wrapper){
-        wrapper.style.filter = bwCheckbox.checked
+      const img = canvasArea.querySelector('.cropper-canvas img');
+      if (img) {
+        img.style.filter = bwCheckbox.checked
           ? 'grayscale(100%)'
           : '';
       }
@@ -286,13 +293,14 @@
         const line = document.createElement('div');
         line.className = 'panel-line';
         Object.assign(line.style,{
-          position:   'absolute',
-          top:        `${cb.top}px`,
-          left:       `${x}px`,
-          height:     `${cb.height}px`,
-          width:      '2px',
-          background: 'rgba(255,0,0,0.6)',
-          pointerEvents:'none'
+          position:      'absolute',
+          top:           `${cb.top}px`,
+          left:          `${x}px`,
+          height:        `${cb.height}px`,
+          width:         '2px',
+          background:    'rgba(255,0,0,0.6)',
+          pointerEvents: 'none',
+          zIndex:        2000
         });
         canvasArea.append(line);
       }
@@ -306,7 +314,9 @@
     });
 
     variantSelect.addEventListener('change', ()=>{
-      renderImage(); applyFlip(); applyBW();
+      renderImage();
+      applyFlip();
+      applyBW();
     });
 
     unitSelect.addEventListener('change', ()=>{
@@ -324,7 +334,7 @@
     }));
 
     flipSelect.addEventListener('change', applyFlip);
-    bwCheckbox .addEventListener('change', applyBW);
+    bwCheckbox.addEventListener('change', applyBW);
     panelsCheckbox.addEventListener('change', ()=>{
       if (panelsCheckbox.checked) drawPanels();
       else canvasArea.querySelectorAll('.panel-line').forEach(n=>n.remove());
