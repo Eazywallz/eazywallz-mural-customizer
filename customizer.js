@@ -65,7 +65,7 @@
       display: 'flex',
       flexDirection: 'column',
       position: 'relative',
-      overflow: 'hidden' // Ensure canvas stays within
+      overflow: 'hidden'
     });
     overlay.appendChild(modal);
 
@@ -91,9 +91,16 @@
     Object.assign(canvasWrapper.style, {
       flex: '1',
       position: 'relative',
-      zIndex: '1' // ensure it stays below close button
+      zIndex: '1',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center'
     });
     modal.appendChild(canvasWrapper);
+
+    const fabricCanvas = document.createElement('canvas');
+    fabricCanvas.id = 'fabric-canvas';
+    canvasWrapper.appendChild(fabricCanvas);
 
     const controls = document.createElement('div');
     Object.assign(controls.style, {
@@ -149,11 +156,7 @@
     controls.appendChild(panelsLabel);
 
     let canvas, imgObj;
-    const fabricCanvas = document.createElement('canvas');
-    fabricCanvas.id = 'fabric-canvas';
-    canvasWrapper.appendChild(fabricCanvas);
-
-    canvas = new fabric.Canvas(fabricCanvas, {
+    canvas = new fabric.Canvas('fabric-canvas', {
       backgroundColor: '#fff',
       preserveObjectStacking: true
     });
@@ -175,27 +178,14 @@
       const h = parseFloat(heightInput.value);
       if (!imgObj || !w || !h) return;
 
-      const aspect = w / h;
-      const canvasAspect = canvas.width / canvas.height;
+      const canvasWidth = canvas.getWidth();
+      const canvasHeight = canvas.getHeight();
+      const targetAspect = w / h;
+      const targetWidth = canvasWidth;
+      const targetHeight = canvasWidth / targetAspect;
 
-      let cropWidth = imgObj.width;
-      let cropHeight = cropWidth / aspect;
-      if (cropHeight > imgObj.height) {
-        cropHeight = imgObj.height;
-        cropWidth = cropHeight * aspect;
-      }
-
-      imgObj.set({
-        cropX: (imgObj.width - cropWidth) / 2,
-        cropY: (imgObj.height - cropHeight) / 2,
-        width: cropWidth,
-        height: cropHeight,
-        scaleX: canvas.width / cropWidth,
-        scaleY: canvas.height / cropHeight,
-        left: 0,
-        top: 0
-      });
-
+      canvas.setHeight(targetHeight);
+      fabricCanvas.height = targetHeight;
       canvas.renderAll();
     }
 
@@ -207,25 +197,27 @@
       console.log('Loading image from:', src);
 
       fabric.Image.fromURL(src, (img) => {
-        const width = canvasWrapper.clientWidth || 1000;
-        const height = canvasWrapper.clientHeight || 700;
-
-        fabricCanvas.width = width;
-        fabricCanvas.height = height;
-        canvas.setWidth(width);
-        canvas.setHeight(height);
-
         canvas.clear();
         imgObj = img;
         img.set({
           left: 0,
           top: 0,
+          originX: 'left',
+          originY: 'top',
           selectable: false
         });
-        canvas.setBackgroundImage(null);
+
+        const canvasWidth = canvasWrapper.clientWidth || 1000;
+        const canvasHeight = canvasWrapper.clientHeight || 700;
+
+        fabricCanvas.width = canvasWidth;
+        fabricCanvas.height = canvasHeight;
+        canvas.setWidth(canvasWidth);
+        canvas.setHeight(canvasHeight);
+
         canvas.add(imgObj);
-        applyAspectRatioCrop();
         updatePrice();
+        applyAspectRatioCrop();
         if (panelsCheckbox.checked) drawPanels();
         if (bwCheckbox.checked) applyBW();
       });
@@ -286,14 +278,6 @@
 
     openBtn.addEventListener('click', () => {
       overlay.style.display = 'flex';
-
-      const width = canvasWrapper.clientWidth || 1000;
-      const height = canvasWrapper.clientHeight || 700;
-      fabricCanvas.width = width;
-      fabricCanvas.height = height;
-      canvas.setWidth(width);
-      canvas.setHeight(height);
-
       loadImage();
     });
   }
