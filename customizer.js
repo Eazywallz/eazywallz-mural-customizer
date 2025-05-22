@@ -94,10 +94,26 @@
       padding: '1rem',
       borderTop: '1px solid #ddd',
       display: 'flex',
+      flexWrap: 'wrap',
       gap: '1rem',
       alignItems: 'center'
     });
     modal.appendChild(controls);
+
+    const widthInput = Object.assign(document.createElement('input'), {
+      type: 'number',
+      placeholder: 'Width (in)',
+      min: 1,
+      style: 'width: 100px;'
+    });
+    const heightInput = Object.assign(document.createElement('input'), {
+      type: 'number',
+      placeholder: 'Height (in)',
+      min: 1,
+      style: 'width: 100px;'
+    });
+    controls.appendChild(widthInput);
+    controls.appendChild(heightInput);
 
     const flipSelect = document.createElement('select');
     [['none','None'],['horizontal','Flip H'],['vertical','Flip V']]
