@@ -161,7 +161,7 @@
       canvas.renderAll();
       updatePrice();
     }
-    }
+    
 
     function centerImage() {
       imgObj.set({
