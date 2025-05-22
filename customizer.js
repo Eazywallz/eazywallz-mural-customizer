@@ -10,9 +10,10 @@ if (handle) {
   fetch(`/products/${handle}.js`)
     .then(res => res.json())
     .then(product => {
-      loadProductImage(product.featured_image);
-      populateVariants(product.variants);
-    });
+  const imageUrl = product.images?.[1] || product.images?.[0] || product.featured_image;
+  loadProductImage(imageUrl);
+  populateVariants(product.variants);
+});
 }
 
 function loadProductImage(url) {
