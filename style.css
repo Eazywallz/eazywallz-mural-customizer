@@ -1,0 +1,33 @@
+<style>
+  body {
+    margin: 0;
+    font-family: sans-serif;
+    display: flex;
+    height: 100vh;
+  }
+  #controls {
+    width: 25%;
+    padding: 20px;
+    box-sizing: border-box;
+    background: #f8f8f8;
+  }
+  #canvas-container {
+    width: 75%;
+    position: relative;
+    background: #ddd;
+  }
+  canvas {
+    display: block;
+    max-width: 100%;
+    height: 100vh;
+  }
+  label {
+    display: block;
+    margin-top: 10px;
+  }
+  input, select {
+    width: 100%;
+    padding: 5px;
+    margin-top: 5px;
+  }
+</style>
