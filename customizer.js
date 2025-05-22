@@ -64,7 +64,8 @@
       maxHeight: '900px',
       display: 'flex',
       flexDirection: 'column',
-      position: 'relative'
+      position: 'relative',
+      overflow: 'hidden' // Ensure canvas stays within
     });
     overlay.appendChild(modal);
 
@@ -75,8 +76,12 @@
       top: '10px',
       right: '10px',
       fontSize: '1.5rem',
-      background: 'transparent',
-      border: 'none',
+      background: '#fff',
+      border: '1px solid #ccc',
+      borderRadius: '50%',
+      width: '32px',
+      height: '32px',
+      zIndex: '10001',
       cursor: 'pointer'
     });
     closeBtn.addEventListener('click', () => overlay.style.display = 'none');
@@ -85,7 +90,8 @@
     const canvasWrapper = document.createElement('div');
     Object.assign(canvasWrapper.style, {
       flex: '1',
-      position: 'relative'
+      position: 'relative',
+      zIndex: '1' // ensure it stays below close button
     });
     modal.appendChild(canvasWrapper);
 
@@ -164,7 +170,7 @@
       }
     }
 
-    function applyAspectRatio() {
+    function applyAspectRatioCrop() {
       const w = parseFloat(widthInput.value);
       const h = parseFloat(heightInput.value);
       if (!imgObj || !w || !h) return;
@@ -172,15 +178,24 @@
       const aspect = w / h;
       const canvasAspect = canvas.width / canvas.height;
 
-      let scaleX = canvas.width / imgObj.width;
-      let scaleY = scaleX / aspect;
+      let cropWidth = imgObj.width;
+      let cropHeight = cropWidth / aspect;
+      if (cropHeight > imgObj.height) {
+        cropHeight = imgObj.height;
+        cropWidth = cropHeight * aspect;
+      }
 
       imgObj.set({
-        scaleX: scaleX,
-        scaleY: scaleY,
+        cropX: (imgObj.width - cropWidth) / 2,
+        cropY: (imgObj.height - cropHeight) / 2,
+        width: cropWidth,
+        height: cropHeight,
+        scaleX: canvas.width / cropWidth,
+        scaleY: canvas.height / cropHeight,
         left: 0,
-        top: (canvas.height - imgObj.height * scaleY) / 2
+        top: 0
       });
+
       canvas.renderAll();
     }
 
@@ -205,15 +220,14 @@
         img.set({
           left: 0,
           top: 0,
-          scaleX: width / img.width,
-          scaleY: height / img.height,
           selectable: false
         });
-        canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
-
+        canvas.setBackgroundImage(null);
+        canvas.add(imgObj);
+        applyAspectRatioCrop();
+        updatePrice();
         if (panelsCheckbox.checked) drawPanels();
         if (bwCheckbox.checked) applyBW();
-        updatePrice();
       });
     }
 
@@ -260,11 +274,11 @@
 
     widthInput.addEventListener('input', () => {
       updatePrice();
-      applyAspectRatio();
+      applyAspectRatioCrop();
     });
     heightInput.addEventListener('input', () => {
       updatePrice();
-      applyAspectRatio();
+      applyAspectRatioCrop();
     });
     flipSelect.addEventListener('change', applyFlip);
     bwCheckbox.addEventListener('change', applyBW);
