@@ -156,11 +156,12 @@
     controls.appendChild(panelsCheckbox);
     controls.appendChild(panelsLabel);
 
-    let canvas, imgObj;
-    canvas = new fabric.Canvas('fabric-canvas', {
+    let canvas = new fabric.Canvas('fabric-canvas', {
       backgroundColor: '#fff',
       preserveObjectStacking: true
     });
+
+    let imgObj, cropBox;
 
     function updatePrice() {
       const w = parseFloat(widthInput.value) || 0;
@@ -174,34 +175,16 @@
       }
     }
 
-    function applyAspectRatioCrop() {
+    function updateCropBoxAspectRatio() {
       const w = parseFloat(widthInput.value);
       const h = parseFloat(heightInput.value);
-      if (!imgObj || !w || !h) return;
-
+      if (!cropBox || !w || !h) return;
       const aspect = w / h;
-      const canvasWidth = canvasWrapper.clientWidth || 1000;
-      const canvasHeight = canvasWrapper.clientHeight || 700;
-
-      let cropW = imgObj.width;
-      let cropH = cropW / aspect;
-
-      if (cropH > imgObj.height) {
-        cropH = imgObj.height;
-        cropW = cropH * aspect;
-      }
-
-      imgObj.set({
-        cropX: (imgObj.width - cropW) / 2,
-        cropY: (imgObj.height - cropH) / 2,
-        width: cropW,
-        height: cropH,
-        scaleX: canvasWidth / cropW,
-        scaleY: canvasHeight / cropH,
-        left: 0,
-        top: 0
+      cropBox.set({
+        scaleY: 1,
+        scaleX: 1,
+        width: cropBox.height * aspect
       });
-
       canvas.renderAll();
     }
 
@@ -232,8 +215,29 @@
         canvas.setHeight(canvasHeight);
 
         canvas.add(imgObj);
+
+        // Create draggable crop box with aspect ratio lock
+        const aspect = (parseFloat(widthInput.value) || 4) / (parseFloat(heightInput.value) || 3);
+        cropBox = new fabric.Rect({
+          left: 100,
+          top: 100,
+          width: 300,
+          height: 300 / aspect,
+          fill: 'rgba(0,0,0,0.1)',
+          stroke: '#007bff',
+          strokeWidth: 2,
+          hasBorders: true,
+          hasControls: true,
+          lockRotation: true,
+          lockScalingFlip: true,
+          cornerStyle: 'circle',
+          transparentCorners: false,
+          selectable: true
+        });
+
+        canvas.add(cropBox);
+        canvas.setActiveObject(cropBox);
         updatePrice();
-        applyAspectRatioCrop();
         if (panelsCheckbox.checked) drawPanels();
         if (bwCheckbox.checked) applyBW();
       });
@@ -282,11 +286,11 @@
 
     widthInput.addEventListener('input', () => {
       updatePrice();
-      applyAspectRatioCrop();
+      updateCropBoxAspectRatio();
     });
     heightInput.addEventListener('input', () => {
       updatePrice();
-      applyAspectRatioCrop();
+      updateCropBoxAspectRatio();
     });
     flipSelect.addEventListener('change', applyFlip);
     bwCheckbox.addEventListener('change', applyBW);
