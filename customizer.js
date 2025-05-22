@@ -140,30 +140,27 @@
       const w = parseFloat(widthInput.value);
       const h = parseFloat(heightInput.value);
       if (!w || !h) return;
+
       const containerWidth = rightCanvasWrapper.clientWidth;
       const containerHeight = rightCanvasWrapper.clientHeight;
-      const containerAspect = containerWidth / containerHeight;
-      const desiredAspect = w / h;
 
-      let canvasWidth, canvasHeight;
-      if (desiredAspect > containerAspect) {
-        canvasWidth = containerWidth;
-        canvasHeight = canvasWidth / desiredAspect;
-      } else {
-        canvasHeight = containerHeight;
-        canvasWidth = canvasHeight * desiredAspect;
-      }
+      const inchesPerFoot = 12;
+      const pixelsPerInch = 10; // Adjust this for scale sensitivity
+      const widthPx = w * pixelsPerInch;
+      const heightPx = h * pixelsPerInch;
 
-      canvas.setWidth(canvasWidth);
-      canvas.setHeight(canvasHeight);
-      fabricCanvas.width = canvasWidth;
-      fabricCanvas.height = canvasHeight;
+      canvas.setWidth(widthPx);
+      canvas.setHeight(heightPx);
+      fabricCanvas.width = widthPx;
+      fabricCanvas.height = heightPx;
 
       if (imgObj) {
         centerImage();
       }
 
+      canvas.renderAll();
       updatePrice();
+    }
     }
 
     function centerImage() {
