@@ -2,6 +2,8 @@ window.addEventListener("message", (event) => {
   const product = event.data?.product;
   if (!product) return;
 
+  console.log("✅ Product data received in iframe:", product);
+
   const imageUrl = product.images?.[1] || product.images?.[0] || product.featured_image;
   loadProductImage(imageUrl);
   populateVariants(product.variants);
