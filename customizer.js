@@ -1,16 +1,11 @@
 // public/customizer.js
 ;(function () {
-  function loadCropper() {
+  function loadFabric() {
     return new Promise((resolve, reject) => {
-      const link = document.createElement('link');
-      link.rel  = 'stylesheet';
-      link.href = 'https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css';
-      document.head.appendChild(link);
-
       const script = document.createElement('script');
-      script.src     = 'https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js';
-      script.onload  = () => { console.log('Cropper.js loaded'); resolve(); };
-      script.onerror = (err) => reject(err);
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js';
+      script.onload = () => { console.log('Fabric.js loaded'); resolve(); };
+      script.onerror = reject;
       document.head.appendChild(script);
     });
   }
@@ -22,7 +17,7 @@
       return;
     }
     container.style.maxWidth = '500px';
-    container.style.margin   = '1rem auto';
+    container.style.margin = '1rem auto';
 
     let product;
     try {
@@ -31,379 +26,190 @@
       console.error('Customizer: invalid product JSON', err);
       return;
     }
-    console.log('Customizer: product loaded', product);
 
-    let openBtn = document.getElementById('customizer-open-btn');
-    if (!openBtn) {
-      openBtn = document.createElement('button');
-      openBtn.id = 'customizer-open-btn';
-      openBtn.type = 'button';
-      openBtn.innerText = 'Customize Mural';
-      Object.assign(openBtn.style, {
-        margin: '1rem 0',
-        padding: '0.5rem 1rem',
-        background: '#007bff',
-        color: '#fff',
-        border: 'none',
-        cursor: 'pointer'
-      });
-      container.insertBefore(openBtn, container.firstChild);
-    }
-
-    let overlay = document.getElementById('customizer-overlay');
-    if (!overlay) {
-      overlay = document.createElement('div');
-      overlay.id = 'customizer-overlay';
-      Object.assign(overlay.style, {
-        position: 'fixed',
-        top: 0, left: 0,
-        width: '100vw',
-        height: '100vh',
-        background: 'rgba(0,0,0,0.5)',
-        display: 'none',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 10000
-      });
-      document.body.appendChild(overlay);
-    }
-
-    let modal = document.getElementById('customizer-modal');
-    if (!modal) {
-      modal = document.createElement('div');
-      modal.id = 'customizer-modal';
-      Object.assign(modal.style, {
-        background: '#fff',
-        borderRadius: '8px',
-        width: '75vw',
-        height: '75vh',
-        maxWidth: '1200px',
-        maxHeight: '900px',
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'relative'
-      });
-      overlay.appendChild(modal);
-    }
-
-    let closeBtn = document.getElementById('customizer-close-btn');
-    if (!closeBtn) {
-      closeBtn = document.createElement('button');
-      closeBtn.id = 'customizer-close-btn';
-      closeBtn.type = 'button';
-      closeBtn.innerText = '✕';
-      Object.assign(closeBtn.style, {
-        position: 'absolute',
-        top: '10px',
-        right: '10px',
-        fontSize: '1.5rem',
-        background: 'transparent',
-        border: 'none',
-        cursor: 'pointer'
-      });
-      closeBtn.addEventListener('click', () => overlay.style.display = 'none');
-      modal.appendChild(closeBtn);
-    }
-
-    let controls = document.getElementById('customizer-controls');
-    if (!controls) {
-      controls = document.createElement('div');
-      controls.id = 'customizer-controls';
-      Object.assign(controls.style, {
-        padding: '1rem',
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: '0.5rem',
-        borderBottom: '1px solid #ddd'
-      });
-      modal.appendChild(controls);
-    }
-
-    let canvasArea = document.getElementById('customizer-canvas');
-    if (!canvasArea) {
-      canvasArea = document.createElement('div');
-      canvasArea.id = 'customizer-canvas';
-      Object.assign(canvasArea.style, {
-        flex: '1',
-        position: 'relative',
-        overflow: 'hidden',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      });
-      modal.appendChild(canvasArea);
-    }
-
-    let footer = document.getElementById('customizer-footer');
-    if (!footer) {
-      footer = document.createElement('div');
-      footer.id = 'customizer-footer';
-      Object.assign(footer.style, {
-        padding: '1rem',
-        borderTop: '1px solid #ddd',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      });
-      modal.appendChild(footer);
-    }
-
-    const unitSelect = document.createElement('select');
-    unitSelect.id = 'unit-select';
-    [['inches','Inches'],['feet','Feet'],['cm','Centimeters']]
-      .forEach(([v,t]) => {
-        const o = document.createElement('option');
-        o.value = v;
-        o.text  = t;
-        unitSelect.append(o);
-      });
-    controls.append(unitSelect);
-
-    const variantSelect = document.createElement('select');
-    variantSelect.id = 'variant-select';
-    product.variants.forEach((v,i) => {
-      const o = document.createElement('option');
-      o.value = i;
-      o.text  = v.title;
-      variantSelect.append(o);
+    const openBtn = document.createElement('button');
+    openBtn.innerText = 'Customize Mural';
+    Object.assign(openBtn.style, {
+      margin: '1rem 0',
+      padding: '0.5rem 1rem',
+      background: '#007bff',
+      color: '#fff',
+      border: 'none',
+      cursor: 'pointer'
     });
-    controls.append(variantSelect);
+    container.appendChild(openBtn);
 
-    const widthInput  = Object.assign(document.createElement('input'),{id:'width-input',type:'number',placeholder:'Width',min:1});
-    const heightInput = Object.assign(document.createElement('input'),{id:'height-input',type:'number',placeholder:'Height',min:1});
-    controls.append(widthInput, heightInput);
+    const overlay = document.createElement('div');
+    Object.assign(overlay.style, {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100vw',
+      height: '100vh',
+      background: 'rgba(0,0,0,0.5)',
+      display: 'none',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 10000
+    });
+    document.body.appendChild(overlay);
 
-    const widthFeet    = Object.assign(document.createElement('input'),{id:'width-feet',type:'number',placeholder:'Feet',min:0,maxLength:3,hidden:true});
-    const widthInches  = Object.assign(document.createElement('input'),{id:'width-inches',type:'number',placeholder:'Inches',min:0,max:11,maxLength:2,hidden:true});
-    const heightFeet   = Object.assign(document.createElement('input'),{id:'height-feet',type:'number',placeholder:'Feet',min:0,maxLength:3,hidden:true});
-    const heightInches = Object.assign(document.createElement('input'),{id:'height-inches',type:'number',placeholder:'Inches',min:0,max:11,maxLength:2,hidden:true});
-    controls.append(widthFeet, widthInches, heightFeet, heightInches);
+    const modal = document.createElement('div');
+    Object.assign(modal.style, {
+      background: '#fff',
+      borderRadius: '8px',
+      width: '75vw',
+      height: '75vh',
+      maxWidth: '1200px',
+      maxHeight: '900px',
+      display: 'flex',
+      flexDirection: 'column',
+      position: 'relative'
+    });
+    overlay.appendChild(modal);
+
+    const closeBtn = document.createElement('button');
+    closeBtn.innerText = '✕';
+    Object.assign(closeBtn.style, {
+      position: 'absolute',
+      top: '10px',
+      right: '10px',
+      fontSize: '1.5rem',
+      background: 'transparent',
+      border: 'none',
+      cursor: 'pointer'
+    });
+    closeBtn.addEventListener('click', () => overlay.style.display = 'none');
+    modal.appendChild(closeBtn);
+
+    const canvasWrapper = document.createElement('div');
+    Object.assign(canvasWrapper.style, {
+      flex: '1',
+      position: 'relative'
+    });
+    modal.appendChild(canvasWrapper);
+
+    const controls = document.createElement('div');
+    Object.assign(controls.style, {
+      padding: '1rem',
+      borderTop: '1px solid #ddd',
+      display: 'flex',
+      gap: '1rem',
+      alignItems: 'center'
+    });
+    modal.appendChild(controls);
 
     const flipSelect = document.createElement('select');
-    flipSelect.id='flip-select';
     [['none','None'],['horizontal','Flip H'],['vertical','Flip V']]
       .forEach(([v,t]) => {
         const o = document.createElement('option');
         o.value = v;
-        o.text  = t;
-        flipSelect.append(o);
+        o.text = t;
+        flipSelect.appendChild(o);
       });
-    controls.append(flipSelect);
+    controls.appendChild(flipSelect);
 
-    const bwCheckbox = Object.assign(document.createElement('input'),{id:'bw-checkbox',type:'checkbox'});
-    const bwLabel    = document.createTextNode(' B&W ');
-    controls.append(bwCheckbox, bwLabel);
+    const bwCheckbox = Object.assign(document.createElement('input'), { type: 'checkbox' });
+    const bwLabel = document.createElement('label');
+    bwLabel.textContent = ' B&W';
+    controls.appendChild(bwCheckbox);
+    controls.appendChild(bwLabel);
 
-    const panelsCheckbox = Object.assign(document.createElement('input'),{id:'panels-checkbox',type:'checkbox'});
-    const panelsLabel    = document.createTextNode(' Show panels ');
-    controls.append(panelsCheckbox, panelsLabel);
+    const panelsCheckbox = Object.assign(document.createElement('input'), { type: 'checkbox' });
+    const panelsLabel = document.createElement('label');
+    panelsLabel.textContent = ' Show Panels';
+    controls.appendChild(panelsCheckbox);
+    controls.appendChild(panelsLabel);
 
-    const priceDiv = document.createElement('div');
-    priceDiv.id = 'price-display';
-    priceDiv.innerText = 'Price: $0.00';
-    const addBtn = document.createElement('button');
-    addBtn.id   = 'add-btn';
-    addBtn.type = 'button';
-    addBtn.innerText = 'Add to Cart';
-    Object.assign(addBtn.style,{
-      padding:'0.5rem 1rem',
-      background:'#007bff',
-      color:'#fff',
-      border:'none',
-      borderRadius:'4px',
-      cursor:'pointer'
+    let canvas, imgObj;
+    const fabricCanvas = document.createElement('canvas');
+    fabricCanvas.id = 'fabric-canvas';
+    fabricCanvas.width = canvasWrapper.clientWidth;
+    fabricCanvas.height = canvasWrapper.clientHeight;
+    canvasWrapper.appendChild(fabricCanvas);
+
+    canvas = new fabric.Canvas('fabric-canvas', {
+      backgroundColor: '#fff',
+      preserveObjectStacking: true
     });
-    footer.append(priceDiv, addBtn);
 
-    const qtyInput = document.querySelector('input[name="quantity"]');
-    if (qtyInput) { qtyInput.step='1'; qtyInput.min='1'; }
-
-    let cropper, imgEl;
-    let currentFlip = { x: 1, y: 1 };
-
-    function clearCanvas() {
-      if (cropper) cropper.destroy();
-      canvasArea.innerHTML = '';
-    }
-
-    function renderImage() {
-      clearCanvas();
-      let src = product.variants[variantSelect.value].image?.src
-             || product.variants[variantSelect.value].featured_image?.src
-             || product.images[1];
+    function loadImage() {
+      const variant = product.variants[0];
+      let src = variant.image?.src || variant.featured_image?.src || product.images[1];
       if (src.startsWith('//')) src = window.location.protocol + src;
 
-      imgEl = document.createElement('img');
-      imgEl.src = src;
-      Object.assign(imgEl.style, {minWidth:'100%', minHeight:'100%', display:'block'});
-
-      imgEl.onload = () => {
-        canvasArea.append(imgEl);
-        cropper = new Cropper(imgEl, {
-          viewMode: 1,
-          autoCropArea: 1,
-          dragMode: 'move',
-          cropBoxMovable: false,
-          cropBoxResizable: false,
-          zoomable: false,
-          scalable: false,
-          responsive: true,
-          ready() {
-            updateAll();
-            applyFlip();
-            applyBW();
-            if (panelsCheckbox.checked) drawPanels();
-          }
+      fabric.Image.fromURL(src, (img) => {
+        canvas.clear();
+        imgObj = img;
+        img.set({
+          left: 0,
+          top: 0,
+          scaleX: canvas.width / img.width,
+          scaleY: canvas.height / img.height,
+          selectable: false
         });
-      };
+        canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
+        if (panelsCheckbox.checked) drawPanels();
+        if (bwCheckbox.checked) applyBW();
+      });
     }
 
-    function toInches(v) {
-      return unitSelect.value === 'cm' ? v * 0.393700787 : v;
-    }
-    function getW() {
-      return unitSelect.value === 'feet'
-        ? ((+widthFeet.value||0)*12 + (+widthInches.value||0))
-        : toInches(+widthInput.value||0);
-    }
-    function getH() {
-      return unitSelect.value === 'feet'
-        ? ((+heightFeet.value||0)*12 + (+heightInches.value||0))
-        : toInches(+heightInput.value||0);
-    }
-
-    function updateAll(){
-      const w = getW(), h = getH();
-      if (cropper && w > 0 && h > 0) {
-        cropper.setAspectRatio(w/h);
-        const sqft = Math.ceil((w*h)/144) || 1;
-        const priceCents = +product.variants[variantSelect.value].price;
-        priceDiv.innerText = `Price: $${((priceCents/100)*sqft).toFixed(2)}`;
-        if (qtyInput) qtyInput.value = sqft;
+    function drawPanels() {
+      const panelCount = 4;
+      const panelWidth = canvas.width / panelCount;
+      for (let i = 1; i < panelCount; i++) {
+        const line = new fabric.Line([i * panelWidth, 0, i * panelWidth, canvas.height], {
+          stroke: 'red',
+          strokeWidth: 2,
+          selectable: false,
+          evented: false
+        });
+        canvas.add(line);
       }
     }
 
     function applyFlip() {
-      if (!cropper) return;
-      cropper.scaleX(1);
-      cropper.scaleY(1);
-      currentFlip = { x: 1, y: 1 };
-
-      switch (flipSelect.value) {
-        case 'horizontal':
-          cropper.scaleX(-1);
-          currentFlip.x = -1;
-          break;
-        case 'vertical':
-          cropper.scaleY(-1);
-          currentFlip.y = -1;
-          break;
-        case 'none':
-        default:
-          break;
+      if (!imgObj) return;
+      if (flipSelect.value === 'horizontal') {
+        imgObj.set('flipX', true);
+        imgObj.set('flipY', false);
+      } else if (flipSelect.value === 'vertical') {
+        imgObj.set('flipY', true);
+        imgObj.set('flipX', false);
+      } else {
+        imgObj.set('flipX', false);
+        imgObj.set('flipY', false);
       }
+      canvas.renderAll();
     }
 
-    function applyBW(){
-      const wrapper = canvasArea.querySelector('.cropper-canvas');
-      if (wrapper) {
-        wrapper.style.filter = bwCheckbox.checked ? 'grayscale(100%)' : '';
+    function applyBW() {
+      if (!imgObj) return;
+      if (bwCheckbox.checked) {
+        imgObj.filters = [new fabric.Image.filters.Grayscale()];
+        imgObj.applyFilters();
+      } else {
+        imgObj.filters = [];
+        imgObj.applyFilters();
       }
+      canvas.renderAll();
     }
-
-    function drawPanels() {
-      if (!cropper) return;
-      const containerDiv = canvasArea.querySelector('.cropper-container');
-      containerDiv.querySelectorAll('.panel-line').forEach(l => l.remove());
-
-      const cb    = cropper.getCropBoxData();
-      const total = getW();
-      const maxW  = unitSelect.value === 'cm' ? 63.5 : 25;
-      const count = Math.ceil(total / maxW);
-      const step  = cb.width / count;
-
-      for (let i = 1; i < count; i++) {
-        const x = cb.left + step * i;
-        const line = document.createElement('div');
-        line.className = 'panel-line';
-        Object.assign(line.style, {
-          position: 'absolute',
-          top: `${cb.top}px`,
-          left: `${x}px`,
-          height: `${cb.height}px`,
-          width: '2px',
-          background: 'rgba(255,0,0,0.7)',
-          pointerEvents: 'none',
-          zIndex: 500
-        });
-        containerDiv.appendChild(line);
-      }
-    }
-
-    openBtn.addEventListener('click', () => overlay.style.display = 'flex');
-    variantSelect.addEventListener('change', renderImage);
-    unitSelect.addEventListener('change', () => {
-      const feet = unitSelect.value === 'feet';
-      widthInput.hidden = heightInput.hidden = feet;
-      [widthFeet,widthInches,heightFeet,heightInches].forEach(i => i.hidden = !feet);
-      updateAll();
-      if (panelsCheckbox.checked) drawPanels();
-    });
-    [widthInput,heightInput,widthFeet,widthInches,heightFeet,heightInches]
-      .forEach(i => i.addEventListener('input', () => {
-        updateAll();
-        if (panelsCheckbox.checked) drawPanels();
-      }));
 
     flipSelect.addEventListener('change', applyFlip);
     bwCheckbox.addEventListener('change', applyBW);
-    panelsCheckbox.addEventListener('change', () => {
-      if (panelsCheckbox.checked) drawPanels();
-      else canvasArea.querySelectorAll('.panel-line').forEach(l => l.remove());
-    });
+    panelsCheckbox.addEventListener('change', loadImage);
 
-    addBtn.addEventListener('click', () => {
-      if (!cropper) return;
-      cropper.getCroppedCanvas().toBlob(blob => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const props = {
-            Width:  unitSelect.value==='feet'
-                      ? `${widthFeet.value}ft ${widthInches.value}in`
-                      : `${widthInput.value} ${unitSelect.value}`,
-            Height: unitSelect.value==='feet'
-                      ? `${heightFeet.value}ft ${heightInches.value}in`
-                      : `${heightInput.value} ${unitSelect.value}`,
-            Flip:   flipSelect.value,
-            BW:     bwCheckbox.checked ? 'Yes' : 'No',
-            Panels: panelsCheckbox.checked ? 'Yes' : 'No'
-          };
-          const qty = Math.ceil((getW()*getH())/144) || 1;
-          fetch('/cart/add.js', {
-            method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({
-              id: product.variants[variantSelect.value].id,
-              quantity: qty,
-              properties: props
-            })
-          })
-          .then(r => r.json())
-          .then(() => window.location = '/cart')
-          .catch(console.error);
-        };
-        reader.readAsDataURL(blob);
-      });
+    openBtn.addEventListener('click', () => {
+      overlay.style.display = 'flex';
+      loadImage();
     });
-
-    renderImage();
   }
 
   if (document.readyState !== 'loading') {
-    loadCropper().then(initCustomizer).catch(err => console.error(err));
+    loadFabric().then(initCustomizer).catch(console.error);
   } else {
     document.addEventListener('DOMContentLoaded', () =>
-      loadCropper().then(initCustomizer).catch(err => console.error(err))
+      loadFabric().then(initCustomizer).catch(console.error)
     );
   }
 })();
