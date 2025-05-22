@@ -1,3 +1,11 @@
+window.addEventListener("message", (event) => {
+  const product = event.data?.product;
+  if (!product) return;
+
+  const imageUrl = product.images?.[1] || product.images?.[0] || product.featured_image;
+  loadProductImage(imageUrl);
+  populateVariants(product.variants);
+});
 const canvas = new fabric.Canvas('mural-canvas', { selection: false });
 let imgInstance;
 let cropBox;
