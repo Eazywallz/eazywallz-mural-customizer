@@ -48,10 +48,7 @@
     <input type="number" id="height" placeholder="Enter height">
 
     <label for="material">Material</label>
-    <select id="material">
-      <option value="paper" data-price="3">Prepasted Paper ($3/sqft)</option>
-      <option value="vinyl" data-price="5">Type II Vinyl ($5/sqft)</option>
-    </select>
+    <select id="material"></select>
 
     <h3 id="price-display">Total: $0.00</h3>
     <button onclick="addToCart()">Add to Cart</button>
@@ -67,21 +64,53 @@
     let imgInstance;
     let cropBox;
 
-    // Load image
-    fabric.Image.fromURL('https://cdn.shopify.com/s/files/1/0000/0001/products/sample-image.jpg', function(img) {
-      imgInstance = img;
-      img.set({
-        left: 0,
-        top: 0,
-        hasBorders: false,
-        hasControls: false,
-        selectable: false
-      });
-      img.scaleToHeight(canvas.getHeight());
-      canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
-    });
+    // Attempt to infer product handle from URL
+    const pathParts = window.location.pathname.split('/');
+    const handle = pathParts.includes('products') ? pathParts[pathParts.indexOf('products') + 1] : null;
 
-    // Resize + crop logic
+    if (handle) {
+      fetch(`/products/${handle}.js`)
+        .then(res => res.json())
+        .then(product => {
+          loadProductImage(product.featured_image);
+          populateVariants(product.variants);
+        });
+    }
+
+    function loadProductImage(url) {
+      fabric.Image.fromURL(url, function(img) {
+        imgInstance = img;
+        img.set({
+          left: 0,
+          top: 0,
+          hasBorders: false,
+          hasControls: false,
+          selectable: true,
+          lockScalingX: true,
+          lockScalingY: true,
+          lockRotation: true
+        });
+
+        img.scaleToHeight(canvas.getHeight());
+        canvas.add(img);
+        canvas.sendToBack(img);
+      });
+    }
+
+    function populateVariants(variants) {
+      const materialSelect = document.getElementById('material');
+      materialSelect.innerHTML = '';
+      variants.forEach(variant => {
+        const sqftPrice = (variant.price / 100).toFixed(2); // Price in dollars
+        const opt = document.createElement('option');
+        opt.value = variant.id;
+        opt.dataset.price = sqftPrice;
+        opt.textContent = `${variant.title} ($${sqftPrice}/sqft)`;
+        materialSelect.appendChild(opt);
+      });
+      updatePrice();
+    }
+
     document.getElementById('width').addEventListener('input', updateCrop);
     document.getElementById('height').addEventListener('input', updateCrop);
     document.getElementById('material').addEventListener('change', updatePrice);
@@ -115,7 +144,8 @@
         fill: 'rgba(255, 255, 255, 0.3)',
         stroke: 'black',
         strokeWidth: 1,
-        selectable: false
+        selectable: false,
+        evented: false
       });
 
       canvas.add(cropBox);
@@ -127,11 +157,11 @@
       const width = parseFloat(document.getElementById('width').value);
       const height = parseFloat(document.getElementById('height').value);
       const material = document.getElementById('material');
-      const pricePerSqft = parseFloat(material.options[material.selectedIndex].dataset.price);
+      const pricePerSqft = parseFloat(material.options[material.selectedIndex]?.dataset.price || 0);
 
       if (!width || !height) return;
 
-      const area = (width * height) / 144; // convert to square feet
+      const area = (width * height) / 144;
       const price = area * pricePerSqft;
 
       document.getElementById('price-display').innerText = `Total: $${price.toFixed(2)}`;
