@@ -115,6 +115,11 @@
     controls.appendChild(widthInput);
     controls.appendChild(heightInput);
 
+    const priceDisplay = document.createElement('div');
+    priceDisplay.id = 'price-display';
+    priceDisplay.innerText = 'Price: $0.00';
+    controls.appendChild(priceDisplay);
+
     const flipSelect = document.createElement('select');
     [['none','None'],['horizontal','Flip H'],['vertical','Flip V']]
       .forEach(([v,t]) => {
@@ -147,6 +152,38 @@
       preserveObjectStacking: true
     });
 
+    function updatePrice() {
+      const w = parseFloat(widthInput.value) || 0;
+      const h = parseFloat(heightInput.value) || 0;
+      if (w > 0 && h > 0) {
+        const sqft = Math.ceil((w * h) / 144) || 1;
+        const priceCents = +product.variants[0].price;
+        priceDisplay.innerText = `Price: $${((priceCents / 100) * sqft).toFixed(2)}`;
+      } else {
+        priceDisplay.innerText = 'Price: $0.00';
+      }
+    }
+
+    function applyAspectRatio() {
+      const w = parseFloat(widthInput.value);
+      const h = parseFloat(heightInput.value);
+      if (!imgObj || !w || !h) return;
+
+      const aspect = w / h;
+      const canvasAspect = canvas.width / canvas.height;
+
+      let scaleX = canvas.width / imgObj.width;
+      let scaleY = scaleX / aspect;
+
+      imgObj.set({
+        scaleX: scaleX,
+        scaleY: scaleY,
+        left: 0,
+        top: (canvas.height - imgObj.height * scaleY) / 2
+      });
+      canvas.renderAll();
+    }
+
     function loadImage() {
       const variant = product.variants[0];
       let src = variant.image?.src || variant.featured_image?.src || product.images[1];
@@ -176,6 +213,7 @@
 
         if (panelsCheckbox.checked) drawPanels();
         if (bwCheckbox.checked) applyBW();
+        updatePrice();
       });
     }
 
@@ -220,6 +258,14 @@
       canvas.renderAll();
     }
 
+    widthInput.addEventListener('input', () => {
+      updatePrice();
+      applyAspectRatio();
+    });
+    heightInput.addEventListener('input', () => {
+      updatePrice();
+      applyAspectRatio();
+    });
     flipSelect.addEventListener('change', applyFlip);
     bwCheckbox.addEventListener('change', applyBW);
     panelsCheckbox.addEventListener('change', loadImage);
