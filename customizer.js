@@ -124,11 +124,9 @@
     let canvas, imgObj;
     const fabricCanvas = document.createElement('canvas');
     fabricCanvas.id = 'fabric-canvas';
-    fabricCanvas.width = canvasWrapper.clientWidth;
-    fabricCanvas.height = canvasWrapper.clientHeight;
     canvasWrapper.appendChild(fabricCanvas);
 
-    canvas = new fabric.Canvas('fabric-canvas', {
+    canvas = new fabric.Canvas(fabricCanvas, {
       backgroundColor: '#fff',
       preserveObjectStacking: true
     });
@@ -138,17 +136,28 @@
       let src = variant.image?.src || variant.featured_image?.src || product.images[1];
       if (src.startsWith('//')) src = window.location.protocol + src;
 
+      console.log('Loading image from:', src);
+
       fabric.Image.fromURL(src, (img) => {
+        const width = canvasWrapper.clientWidth || 1000;
+        const height = canvasWrapper.clientHeight || 700;
+
+        fabricCanvas.width = width;
+        fabricCanvas.height = height;
+        canvas.setWidth(width);
+        canvas.setHeight(height);
+
         canvas.clear();
         imgObj = img;
         img.set({
           left: 0,
           top: 0,
-          scaleX: canvas.width / img.width,
-          scaleY: canvas.height / img.height,
+          scaleX: width / img.width,
+          scaleY: height / img.height,
           selectable: false
         });
         canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
+
         if (panelsCheckbox.checked) drawPanels();
         if (bwCheckbox.checked) applyBW();
       });
@@ -201,6 +210,14 @@
 
     openBtn.addEventListener('click', () => {
       overlay.style.display = 'flex';
+
+      const width = canvasWrapper.clientWidth || 1000;
+      const height = canvasWrapper.clientHeight || 700;
+      fabricCanvas.width = width;
+      fabricCanvas.height = height;
+      canvas.setWidth(width);
+      canvas.setHeight(height);
+
       loadImage();
     });
   }
